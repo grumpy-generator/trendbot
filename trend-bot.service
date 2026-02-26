@@ -1,0 +1,15 @@
+[Unit]
+Description=Trend Token Bot v3
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/trend-bot-v3
+ExecStart=/usr/bin/python3 main.py --daemon
+Restart=always
+RestartSec=10
+EnvironmentFile=/home/ubuntu/trend-bot-v3/.env
+
+[Install]
+WantedBy=multi-user.target

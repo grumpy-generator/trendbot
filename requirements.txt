@@ -1,0 +1,21 @@
+# Core
+requests>=2.31.0
+feedparser>=6.0.11
+colorama>=0.4.6
+schedule>=1.2.1
+python-dotenv>=1.0.0
+
+# HTML parsing
+beautifulsoup4>=4.12.3
+lxml>=5.1.0
+
+# Async parallel RSS scanning
+aiohttp>=3.9.3
+
+# Solana blockchain
+solana>=0.34.0
+solders>=0.21.0
+base58>=2.1.1
+
+# Image processing (resize, crop for pump.fun)
+Pillow>=10.2.0
