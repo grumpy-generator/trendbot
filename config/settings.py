@@ -128,7 +128,7 @@ RSS_FEEDS = [
 # ---------------------------------------------------------------
 
 # Minimum AI score to alert (AI scoring is much smarter than keywords)
-MIN_SCORE_TO_ALERT = 60
+MIN_SCORE_TO_ALERT = 35
 
 # Fallback keywords (used ONLY if AI scoring unavailable)
 HIGH_VALUE_KEYWORDS = [
