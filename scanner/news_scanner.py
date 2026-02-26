@@ -16,10 +16,11 @@ import feedparser
 
 from config.settings import (
     RSS_FEEDS, HIGH_VALUE_KEYWORDS, LOW_VALUE_KEYWORDS,
-    MIN_SCORE_TO_ALERT, MAX_STORY_AGE_MINUTES,
+    MIN_SCORE_TO_ALERT, TOP_STORIES_PER_WAVE, MAX_STORY_AGE_MINUTES,
     ACTIVE_HOURS_START_UTC, ACTIVE_HOURS_END_UTC,
     BLOCKED_TOPIC_KEYWORDS,
 )
+
 from scanner.ai_scorer import score_and_generate_card, ANTHROPIC_API_KEY
 
 init(autoreset=True)
@@ -214,8 +215,9 @@ def run_scan():
     else:
         print(Fore.YELLOW + "   ⚠️  No AI key — keyword fallback scoring")
 
-    # Pre-filter: only send stories to AI if they have keyword matches (score > 10)
-    AI_PREFILTER_MIN = 15  # must score at least 15 on keywords before calling AI
+    # Pre-filter: only send stories to AI if they have keyword matches
+    # Raised from 15 → 25 to reduce AI calls on borderline stories
+    AI_PREFILTER_MIN = 25  # must score at least 25 on keywords before calling AI
 
     scored = []
     ai_count = 0
@@ -296,8 +298,14 @@ def run_scan():
     # Filter above threshold
     alerts = [s for s in scored if s["score"] >= MIN_SCORE_TO_ALERT]
 
-    print(Fore.CYAN + f"   {len(alerts)} stories above threshold (score ≥ {MIN_SCORE_TO_ALERT})")
-    logging.info(f"Scan: {len(all_stories)} stories, {len(alerts)} alerts")
+    print(Fore.CYAN + f"   {len(alerts)} stories above threshold (≥{MIN_SCORE_TO_ALERT})")
+
+    # AI already ranked by score — keep only the top N for this wave
+    if len(alerts) > TOP_STORIES_PER_WAVE:
+        print(Fore.CYAN + f"   Trimming to top {TOP_STORIES_PER_WAVE} stories for this wave")
+        alerts = alerts[:TOP_STORIES_PER_WAVE]
+
+    logging.info(f"Scan: {len(all_stories)} stories, {len(alerts)} alerts (top {TOP_STORIES_PER_WAVE} max)")
 
     return alerts
 

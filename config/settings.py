@@ -91,10 +91,7 @@ RSS_FEEDS = [
     ("Atlanta Journal",         "https://www.ajc.com/arc/outboundfeeds/rss/"),
 
     # --- VIRAL / POP CULTURE ---
-    ("TMZ",                     "https://www.tmz.com/rss.xml"),
     ("People Magazine",         "https://people.com/feed/"),
-    ("Know Your Meme",          "https://knowyourmeme.com/newsfeed.rss"),
-    ("Buzzfeed",                "https://www.buzzfeed.com/news.xml"),
 
     # --- CRYPTO & FINANCE ---
     ("CoinDesk",                "https://www.coindesk.com/arc/outboundfeeds/rss/"),
@@ -107,11 +104,9 @@ RSS_FEEDS = [
     ("Reddit Politics",         "https://www.reddit.com/r/politics/.rss"),
     ("Reddit Crypto",           "https://www.reddit.com/r/CryptoCurrency/.rss"),
     ("Reddit Solana",           "https://www.reddit.com/r/solana/.rss"),
-    ("Reddit Meme Economy",     "https://www.reddit.com/r/MemeEconomy/.rss"),
     ("Reddit Popular",          "https://www.reddit.com/r/popular/.rss"),
     ("Reddit All Rising",       "https://www.reddit.com/r/all/rising/.rss"),
     ("Reddit News",             "https://www.reddit.com/r/news/.rss"),
-    ("Reddit WTF",              "https://www.reddit.com/r/WTF/.rss"),
 
     # --- TECH & SCIENCE ---
     ("TechCrunch",              "https://techcrunch.com/feed/"),
@@ -128,7 +123,10 @@ RSS_FEEDS = [
 # ---------------------------------------------------------------
 
 # Minimum AI score to alert (AI scoring is much smarter than keywords)
-MIN_SCORE_TO_ALERT = 35
+MIN_SCORE_TO_ALERT = 60
+
+# Max stories to send per wave (AI picks the best ones)
+TOP_STORIES_PER_WAVE = 5
 
 # Fallback keywords (used ONLY if AI scoring unavailable)
 HIGH_VALUE_KEYWORDS = [
@@ -162,11 +160,15 @@ BLOCKED_TOPIC_KEYWORDS = [
 ]
 
 # ---------------------------------------------------------------
-# TIMING
+# TIMING  — 3 waves/day at peak launch hours (UTC)
 # ---------------------------------------------------------------
-SCAN_INTERVAL_MINUTES  = 15  # 15 min saves ~66% API costs vs 5 min
+#   Wave 1 → 13:00 UTC = 08:00 EST  — market open, CT waking up
+#   Wave 2 → 17:00 UTC = 12:00 EST  — midday peak engagement
+#   Wave 3 → 21:00 UTC = 16:00 EST  — post-market, evening degens
+WAVE_TIMES_UTC         = ["13:00", "17:00", "21:00"]
+SCAN_INTERVAL_MINUTES  = 15   # kept for --scan-once / health-check compat
 ACTIVE_HOURS_START_UTC = 13
-ACTIVE_HOURS_END_UTC   = 23
+ACTIVE_HOURS_END_UTC   = 22
 MAX_STORY_AGE_MINUTES  = 720  # 12 hours — older articles are rejected
 
 # ---------------------------------------------------------------

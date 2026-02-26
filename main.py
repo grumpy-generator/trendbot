@@ -36,8 +36,9 @@ from telegram.bot import (
     send_startup_message, send_daily_summary, get_pending_commands,
 )
 from config.settings import (
-    SCAN_INTERVAL_MINUTES,
+    WAVE_TIMES_UTC,
     MIN_SCORE_TO_ALERT,
+    TOP_STORIES_PER_WAVE,
     NOTIFY_TELEGRAM,
     DEV_BUY_AMOUNT_SOL,
     USE_AI_SCORING,
@@ -386,9 +387,10 @@ def _send_positions():
 # ---------------------------------------------------------------
 
 def start_bot_continuous():
-    """Continuous scanning loop."""
-    print(Fore.GREEN + f"\n  🤖 Bot started! Scan every {SCAN_INTERVAL_MINUTES} min.")
-    print(Fore.WHITE + "  Ctrl+C to stop.\n")
+    """Continuous loop — runs 3 waves/day at fixed UTC times."""
+    waves_str = "  |  ".join(f"Wave {i+1}: {t} UTC" for i, t in enumerate(WAVE_TIMES_UTC))
+    print(Fore.GREEN + f"\n  🤖 Bot started! {waves_str}")
+    print(Fore.WHITE + f"  Top {TOP_STORIES_PER_WAVE} stories per wave. Ctrl+C to stop.\n")
 
     price_monitor.start()
 
@@ -401,8 +403,8 @@ def start_bot_continuous():
     else:
         print(Fore.YELLOW + f"  ⚠️  {wallet_info}")
 
-    run_scan_cycle()
-    schedule.every(SCAN_INTERVAL_MINUTES).minutes.do(run_scan_cycle)
+    for wave_time in WAVE_TIMES_UTC:
+        schedule.every().day.at(wave_time).do(run_scan_cycle)
     schedule.every().day.at("23:55").do(lambda: send_daily_summary(daily_stats))
 
     try:
