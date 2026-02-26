@@ -350,6 +350,10 @@ def process_telegram_commands():
                 sys.exit(0)
             elif action == "/summary":
                 send_daily_summary(daily_stats)
+            elif action in ("/scan", "/test"):
+                send_message("🔍 Scan manuel en cours...")
+                run_scan_cycle()
+                send_message("✅ Scan terminé.")
 
 
 def _send_status():
@@ -406,6 +410,10 @@ def start_bot_continuous():
     for wave_time in WAVE_TIMES_UTC:
         schedule.every().day.at(wave_time).do(run_scan_cycle)
     schedule.every().day.at("23:55").do(lambda: send_daily_summary(daily_stats))
+
+    # Run first scan immediately on startup (don't wait hours for the first wave)
+    print(Fore.CYAN + "\n  🔍 Running startup scan now...")
+    run_scan_cycle()
 
     try:
         while True:

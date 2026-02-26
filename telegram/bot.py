@@ -267,7 +267,7 @@ def send_startup_message():
         f"🧠 AI: ✅\n"
         f"💰 Buy: *{DEV_BUY_AMOUNT_SOL} SOL*\n"
         f"📈 Sell: *+70%* | 🛑 Stop: *-40%*\n\n"
-        f"`/status` `/tokens` `/pause` `/resume` `/summary`"
+        f"`/scan` `/status` `/tokens` `/pause` `/resume` `/summary`"
     )
     send_message(text)
 
