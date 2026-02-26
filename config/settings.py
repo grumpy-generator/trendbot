@@ -160,6 +160,7 @@ MAX_STORY_AGE_MINUTES  = 45
 # ---------------------------------------------------------------
 NOTIFY_TERMINAL = True
 NOTIFY_TELEGRAM = bool(TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID)
+USE_AI_SCORING = bool(ANTHROPIC_API_KEY)
 
 # ---------------------------------------------------------------
 # SOLANA

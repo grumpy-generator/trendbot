@@ -18,6 +18,7 @@ from colorama import Fore
 from config.settings import (
     SELL_STRATEGY, STOP_LOSS_PERCENT, STOP_LOSS_FROM_BUY_PRICE,
     DEV_BUY_AMOUNT_SOL, SOLANA_RPC_URL, WALLET_PRIVATE_KEY,
+    NOTIFY_TELEGRAM,
 )
 
 PRICE_CHECK_INTERVAL = 10  # seconds
@@ -126,6 +127,13 @@ class PriceMonitor:
 
                             print(Fore.GREEN + f"  💸 SELL: {pos['name']} at {tgt_mult}x → {sol:.4f} SOL")
 
+                            if NOTIFY_TELEGRAM:
+                                try:
+                                    from telegram.bot import send_sell_alert
+                                    send_sell_alert(pos['name'], pos['ticker'], tgt_mult, sell_pct, sol)
+                                except Exception as e:
+                                    logging.error(f"Telegram sell alert error: {e}")
+
                             if pos["remaining_percent"] <= 0:
                                 pos["status"] = "completed"
                                 break
@@ -145,6 +153,13 @@ class PriceMonitor:
                             pos["status"] = "stopped"
                             self.stats["sol_received"] += sol
                             print(Fore.RED + f"  🛑 STOP LOSS: {pos['name']} — {drop:.0%} drop")
+
+                            if NOTIFY_TELEGRAM:
+                                try:
+                                    from telegram.bot import send_stop_loss_alert
+                                    send_stop_loss_alert(pos['name'], pos['ticker'], drop * 100)
+                                except Exception as e:
+                                    logging.error(f"Telegram stop loss alert error: {e}")
 
             except Exception as e:
                 logging.error(f"Price monitor error: {e}")

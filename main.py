@@ -171,7 +171,7 @@ def run_scan_cycle():
 
     # 1. Scan all feeds (async parallel + AI scoring)
     alerts = run_scan()
-    daily_stats["stories_scanned"] += len(alerts)
+    daily_stats["stories_scanned"] += len(alerts)  # alerts count (filtered above threshold)
 
     if not alerts:
         print(Fore.YELLOW + f"  No stories above threshold (≥{MIN_SCORE_TO_ALERT})")
@@ -257,7 +257,7 @@ def do_launch(story, dry_run=True):
             "image_path": story.get("image_path"),
         }
     else:
-        token_info = generate_token_name(story["title"], story.get("summary", ""))
+        token_info = generate_token_name(story)
         token_info["image_path"] = story.get("image_path")
 
     result = launcher.launch_token(story, token_info, dry_run=dry_run)

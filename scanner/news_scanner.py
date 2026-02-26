@@ -7,6 +7,7 @@
 
 import logging
 import hashlib
+import threading
 from datetime import datetime, timezone, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from colorama import Fore, init
@@ -27,11 +28,13 @@ logging.basicConfig(
     format="%(asctime)s - %(message)s",
 )
 
-# Track seen stories to avoid duplicates
+# Track seen stories to avoid duplicates (thread-safe)
 _seen_ids = set()
+_seen_ids_lock = threading.Lock()
 
 # Track feed health
 _feed_health = {}  # feed_name -> {"ok": int, "fail": int, "last_error": str}
+_feed_health_lock = threading.Lock()
 
 
 def is_active_hours():
@@ -101,18 +104,22 @@ def _scan_single_feed(feed_name, feed_url):
         })
 
         if feed.bozo and not feed.entries:
-            _feed_health.setdefault(feed_name, {"ok": 0, "fail": 0, "last_error": ""})
-            _feed_health[feed_name]["fail"] += 1
-            _feed_health[feed_name]["last_error"] = str(feed.bozo_exception)[:100]
+            with _feed_health_lock:
+                _feed_health.setdefault(feed_name, {"ok": 0, "fail": 0, "last_error": ""})
+                _feed_health[feed_name]["fail"] += 1
+                _feed_health[feed_name]["last_error"] = str(feed.bozo_exception)[:100]
             return stories
 
-        _feed_health.setdefault(feed_name, {"ok": 0, "fail": 0, "last_error": ""})
-        _feed_health[feed_name]["ok"] += 1
+        with _feed_health_lock:
+            _feed_health.setdefault(feed_name, {"ok": 0, "fail": 0, "last_error": ""})
+            _feed_health[feed_name]["ok"] += 1
 
         for entry in feed.entries:
             sid = _story_id(entry)
-            if sid in _seen_ids:
-                continue
+            with _seen_ids_lock:
+                if sid in _seen_ids:
+                    continue
+                _seen_ids.add(sid)
             if not _is_fresh(entry):
                 continue
 
@@ -133,7 +140,6 @@ def _scan_single_feed(feed_name, feed_url):
                 "pub_time": pub_time,
                 "published": pub_time.strftime("%Y-%m-%d %H:%M UTC") if pub_time else "Unknown",
             })
-            _seen_ids.add(sid)
 
     except Exception as e:
         logging.error(f"Error scanning {feed_name}: {e}")
@@ -224,8 +230,8 @@ def print_story_summary(stories, limit=5):
         color = Fore.GREEN if s["score"] >= 70 else Fore.YELLOW if s["score"] >= 45 else Fore.RED
         method = "🤖" if s.get("scoring_method") == "ai" else "📝"
         print(color + f"  {i+1}. [{s['score']:3d}] {method} {s['title'][:70]}")
-        if s.get("ai_token_name"):
-            print(Fore.WHITE + f"       → Token: {s['ai_token_name']} (${s.get('ai_ticker', '?')})")
+        if s.get("ai_name"):
+            print(Fore.WHITE + f"       → Token: {s['ai_name']} (${s.get('ai_ticker', '?')})")
         print(Fore.WHITE + f"       Source: {s['source']}")
 
 
@@ -242,10 +248,10 @@ def format_alert(story):
         f"  📌 Title:     {story['title']}",
         f"  🏷️  Keywords:  {', '.join(story.get('keywords', []))}",
     ]
-    if story.get("ai_reasoning"):
-        lines.append(f"  🤖 AI says:   {story['ai_reasoning']}")
-    if story.get("ai_token_name"):
-        lines.append(f"  🎯 Token:     {story['ai_token_name']} (${story.get('ai_ticker', '?')})")
+    if story.get("ai_reason"):
+        lines.append(f"  🤖 AI says:   {story['ai_reason']}")
+    if story.get("ai_name"):
+        lines.append(f"  🎯 Token:     {story['ai_name']} (${story.get('ai_ticker', '?')})")
     lines += [
         f"  🕐 Published: {story['published']}",
         f"  🔗 Link:      {story['link']}",
@@ -262,4 +268,16 @@ def get_feed_health_report():
         rate = (stats["ok"] / total * 100) if total > 0 else 0
         if rate < 50:
             report.append(f"  ⚠️  {name}: {rate:.0f}% success ({stats['last_error'][:50]})")
+    return report
+
+
+def check_feed_health():
+    """Print feed health report to terminal."""
+    report = get_feed_health_report()
+    if report:
+        print(Fore.YELLOW + "\n  📡 Feed Health Issues:")
+        for line in report:
+            print(Fore.YELLOW + line)
+    else:
+        print(Fore.GREEN + "\n  📡 All feeds healthy ✅")
     return report

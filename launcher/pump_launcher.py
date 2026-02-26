@@ -64,9 +64,9 @@ def generate_token_name(story):
     Uses AI-generated name from scoring if already available.
     """
     # If AI already scored this story, use those names
-    if story.get("ai_token_name") and story.get("ai_ticker"):
+    if story.get("ai_name") and story.get("ai_ticker"):
         return {
-            "name": story["ai_token_name"],
+            "name": story["ai_name"],
             "ticker": story["ai_ticker"],
             "description": f"Based on trending news: {story['title'][:100]}",
         }

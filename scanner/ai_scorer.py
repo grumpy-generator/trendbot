@@ -185,8 +185,22 @@ def score_and_generate_card(title, summary="", source=""):
 
 
 # ---------------------------------------------------------------
+# Utility
+# ---------------------------------------------------------------
+
+def ai_available():
+    """Check if AI scoring is available."""
+    return bool(ANTHROPIC_API_KEY)
+
+
+# ---------------------------------------------------------------
 # Standalone name+description generator (fallback)
 # ---------------------------------------------------------------
+
+def generate_token_name_ai(title, summary=""):
+    """Alias for generate_card_ai — used by pump_launcher."""
+    return generate_card_ai(title, summary)
+
 
 def generate_card_ai(title, summary=""):
     """
