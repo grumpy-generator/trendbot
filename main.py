@@ -146,7 +146,7 @@ def print_menu():
 # Core scan cycle
 # ---------------------------------------------------------------
 
-def run_scan_cycle():
+def run_scan_cycle(force=False):
     """Full cycle: scan → AI score → find image → dedup → send card to Telegram."""
     global is_paused, daily_stats
 
@@ -158,7 +158,7 @@ def run_scan_cycle():
         print(Fore.YELLOW + "\n  ⏸  Paused (.pause file).")
         return
 
-    if not is_active_hours():
+    if not force and not is_active_hours():
         print(Fore.YELLOW + "\n  😴 Outside active hours")
         return
 
@@ -352,7 +352,7 @@ def process_telegram_commands():
                 send_daily_summary(daily_stats)
             elif action in ("/scan", "/test"):
                 send_message("🔍 Scan manuel en cours...")
-                run_scan_cycle()
+                run_scan_cycle(force=True)
                 send_message("✅ Scan terminé.")
 
 
