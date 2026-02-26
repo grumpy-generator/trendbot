@@ -197,17 +197,37 @@ def run_scan():
     if not all_stories:
         return []
 
-    # --- Phase 2: Score stories + generate full token card ---
+    # --- Phase 2: Pre-filter with keywords, then AI-score only promising stories ---
     use_ai = bool(ANTHROPIC_API_KEY)
     if use_ai:
-        print(Fore.CYAN + "   🤖 AI scoring + card generation (Claude Haiku)")
+        print(Fore.CYAN + "   🤖 AI scoring (keyword pre-filter to save costs)")
     else:
         print(Fore.YELLOW + "   ⚠️  No AI key — keyword fallback scoring")
 
+    # Pre-filter: only send stories to AI if they have keyword matches (score > 10)
+    AI_PREFILTER_MIN = 15  # must score at least 15 on keywords before calling AI
+
     scored = []
     ai_count = 0
+    skipped_ai = 0
     for story in all_stories:
         if use_ai:
+            # Quick keyword check first to avoid wasting API calls
+            pre_score, pre_kws = score_story_fallback(story["title"], story["summary"])
+            if pre_score < AI_PREFILTER_MIN:
+                # Too boring for AI — just use keyword score
+                story["score"] = pre_score
+                story["keywords"] = pre_kws
+                story["scoring_method"] = "fallback"
+                name, ticker = _generate_fallback_name(story["title"])
+                story["ai_name"] = name
+                story["ai_ticker"] = ticker
+                story["ai_reason"] = "Below keyword threshold"
+                story["ai_description"] = ""
+                scored.append(story)
+                skipped_ai += 1
+                continue
+
             card = score_and_generate_card(story["title"], story["summary"], story["source"])
             if card:
                 story["score"] = card["score"]
@@ -242,8 +262,8 @@ def run_scan():
 
         scored.append(story)
 
-    if ai_count:
-        print(Fore.CYAN + f"   🤖 AI generated {ai_count} token cards")
+    if ai_count or skipped_ai:
+        print(Fore.CYAN + f"   🤖 AI scored {ai_count} stories (skipped {skipped_ai} boring ones → saved ~${skipped_ai * 0.001:.3f})")
 
     # Sort by score descending
     scored.sort(key=lambda x: x["score"], reverse=True)

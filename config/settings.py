@@ -150,7 +150,7 @@ LOW_VALUE_KEYWORDS = [
 # ---------------------------------------------------------------
 # TIMING
 # ---------------------------------------------------------------
-SCAN_INTERVAL_MINUTES  = 5
+SCAN_INTERVAL_MINUTES  = 15  # 15 min saves ~66% API costs vs 5 min
 ACTIVE_HOURS_START_UTC = 13
 ACTIVE_HOURS_END_UTC   = 23
 MAX_STORY_AGE_MINUTES  = 45
