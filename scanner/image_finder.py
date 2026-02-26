@@ -40,20 +40,20 @@ def find_token_image(story_title, ticker, name, visual_hint="", keywords=None):
     """
     os.makedirs(IMAGE_DIR, exist_ok=True)
 
-    # 1. Pollinations.ai — free, no API key, always generates something relevant
-    prompt = _build_pollinations_prompt(name, visual_hint, story_title, keywords)
-    filepath = _generate_with_pollinations(prompt, ticker)
-    if filepath:
-        logging.info(f"Image: Pollinations.ai success for '{ticker}'")
-        return filepath
-
-    # 2. Web search for real meme images
+    # 1. Web search — find the actual viral meme/photo from the story
     search_queries = _build_search_queries(visual_hint, name, keywords)
     for query in search_queries:
         filepath = _search_and_download(query, ticker)
         if filepath:
             logging.info(f"Image: web search success for '{ticker}' via '{query}'")
             return filepath
+
+    # 2. Pollinations.ai — free AI generation when no real image found
+    prompt = _build_pollinations_prompt(name, visual_hint, story_title, keywords)
+    filepath = _generate_with_pollinations(prompt, ticker)
+    if filepath:
+        logging.info(f"Image: Pollinations.ai success for '{ticker}'")
+        return filepath
 
     # 3. Placeholder
     logging.warning(f"Image: falling back to placeholder for '{ticker}'")
