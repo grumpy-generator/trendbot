@@ -69,6 +69,31 @@ def _story_id(entry):
     return hashlib.md5(raw.encode()).hexdigest()
 
 
+_SKIP_WORDS = {
+    "the", "a", "an", "and", "or", "but", "in", "on", "at", "to",
+    "for", "of", "with", "by", "from", "is", "are", "was", "were",
+    "will", "be", "been", "have", "has", "had", "do", "does", "did",
+    "not", "that", "this", "it", "he", "she", "they", "we", "you",
+    "says", "said", "new", "after", "over", "about", "into", "could",
+}
+
+
+def _generate_fallback_name(title):
+    """Generate a basic token name + ticker from headline words."""
+    words = title.split()
+    interesting = [
+        w.strip(".,!?\"'()[]{}:")
+        for w in words
+        if w.lower().strip(".,!?\"'()[]{}:") not in _SKIP_WORDS and len(w) > 2
+    ]
+    if not interesting:
+        interesting = [w for w in words[:3]]
+
+    ticker = interesting[0][:6].upper() if interesting else "TREND"
+    name = " ".join(w.capitalize() for w in interesting[:3])
+    return name, ticker
+
+
 def score_story_fallback(title, summary=""):
     """
     Keyword-based scoring fallback (used when AI is unavailable).
@@ -199,11 +224,21 @@ def run_scan():
                 story["score"] = score
                 story["keywords"] = kws
                 story["scoring_method"] = "fallback"
+                name, ticker = _generate_fallback_name(story["title"])
+                story["ai_name"] = name
+                story["ai_ticker"] = ticker
+                story["ai_reason"] = f"Keyword match: {', '.join(kws[:3])}" if kws else "Trending story"
+                story["ai_description"] = f"{name} — based on breaking news. LFG! 🚀"
         else:
             score, kws = score_story_fallback(story["title"], story["summary"])
             story["score"] = score
             story["keywords"] = kws
             story["scoring_method"] = "fallback"
+            name, ticker = _generate_fallback_name(story["title"])
+            story["ai_name"] = name
+            story["ai_ticker"] = ticker
+            story["ai_reason"] = f"Keyword match: {', '.join(kws[:3])}" if kws else "Trending story"
+            story["ai_description"] = f"{name} — based on breaking news. LFG! 🚀"
 
         scored.append(story)
 
