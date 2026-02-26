@@ -45,29 +45,29 @@ def find_token_image(story_title, ticker, name, visual_hint="", keywords=None):
     """
     os.makedirs(IMAGE_DIR, exist_ok=True)
 
-    # 1. Pollinations.ai — best for meme coins, always relevant, free
-    prompt = _build_pollinations_prompt(name, visual_hint, story_title, keywords)
-    filepath = _generate_with_pollinations(prompt, ticker)
-    if filepath:
-        logging.info(f"Image: Pollinations.ai OK for '{ticker}'")
-        return filepath
+    queries = _build_search_queries(visual_hint, name, keywords)
 
-    # 2. DuckDuckGo image search
+    # 1. DuckDuckGo image search (real viral photo/meme)
     if HAS_DDGS:
-        queries = _build_search_queries(visual_hint, name, keywords)
         for query in queries:
             filepath = _search_ddg(query, ticker)
             if filepath:
                 logging.info(f"Image: DDG OK for '{ticker}' via '{query}'")
                 return filepath
 
-    # 3. Bing image search (scraping)
-    queries = _build_search_queries(visual_hint, name, keywords)
+    # 2. Bing image search (scraping fallback)
     for query in queries[:2]:
         filepath = _search_bing(query, ticker)
         if filepath:
             logging.info(f"Image: Bing OK for '{ticker}' via '{query}'")
             return filepath
+
+    # 3. Pollinations.ai — AI generation when no real image found
+    prompt = _build_pollinations_prompt(name, visual_hint, story_title, keywords)
+    filepath = _generate_with_pollinations(prompt, ticker)
+    if filepath:
+        logging.info(f"Image: Pollinations.ai OK for '{ticker}'")
+        return filepath
 
     # 4. Placeholder
     logging.warning(f"Image: placeholder for '{ticker}'")
