@@ -147,13 +147,27 @@ LOW_VALUE_KEYWORDS = [
     "tax filing", "zoning", "budget committee",
 ]
 
+# Stories matching ANY of these will be rejected before AI scoring
+# Covers: racism, discrimination, religion-baiting, mass tragedies
+BLOCKED_TOPIC_KEYWORDS = [
+    # Racial hatred / discrimination
+    "white supremac", "white nationalist", "neo-nazi", "kkk ", "hate crime",
+    "ethnic cleansing", "genocide", "antisemit", "islamophob",
+    # Tragedies that shouldn't be meme'd
+    "school shooting", "mass shooting", "mass casualty", "terrorist attack",
+    "suicide bomber", "child abuse", "pedophil", "human trafficking",
+    # Religion (mocking specific religions creates bad optics)
+    "mosque attack", "church attack", "synagogue attack", "temple attack",
+    "blasphemy", "religious persecution", "jihad",
+]
+
 # ---------------------------------------------------------------
 # TIMING
 # ---------------------------------------------------------------
 SCAN_INTERVAL_MINUTES  = 15  # 15 min saves ~66% API costs vs 5 min
 ACTIVE_HOURS_START_UTC = 13
 ACTIVE_HOURS_END_UTC   = 23
-MAX_STORY_AGE_MINUTES  = 45
+MAX_STORY_AGE_MINUTES  = 720  # 12 hours — older articles are rejected
 
 # ---------------------------------------------------------------
 # NOTIFICATIONS
