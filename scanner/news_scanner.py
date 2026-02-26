@@ -208,41 +208,42 @@ def run_scan():
     if not all_stories:
         return []
 
-    # --- Phase 2: Pre-filter with keywords, then AI-score only promising stories ---
+    # --- Phase 2: Funnel — keyword score ALL → top 15 → AI → top 5 ---
     use_ai = bool(ANTHROPIC_API_KEY)
-    if use_ai:
-        print(Fore.CYAN + "   🤖 AI scoring (keyword pre-filter to save costs)")
-    else:
-        print(Fore.YELLOW + "   ⚠️  No AI key — keyword fallback scoring")
 
-    # Pre-filter: only send stories to AI if they have keyword matches
-    # Raised from 15 → 25 to reduce AI calls on borderline stories
-    AI_PREFILTER_MIN = 25  # must score at least 25 on keywords before calling AI
-
-    scored = []
-    ai_count = 0
-    skipped_ai = 0
+    # Step A: keyword-score + block filter everything (instant, no API)
+    candidates = []
     blocked_count = 0
-    ai_rejected = 0
     for story in all_stories:
-        # Safety filter: reject blocked/sensitive topics before any AI call
         is_blocked, matched_kw = _is_blocked_topic(story["title"], story["summary"])
         if is_blocked:
-            logging.info(f"BLOCKED topic [{matched_kw}]: {story['title'][:60]}")
+            logging.info(f"BLOCKED [{matched_kw}]: {story['title'][:60]}")
             blocked_count += 1
             continue
+        pre_score, pre_kws = score_story_fallback(story["title"], story["summary"])
+        story["_pre_score"] = pre_score
+        story["_pre_kws"] = pre_kws
+        candidates.append(story)
+
+    # Step B: sort by keyword score, keep only top 15 for AI
+    candidates.sort(key=lambda x: x["_pre_score"], reverse=True)
+    AI_CAP = 15
+    ai_pool = candidates[:AI_CAP]
+    skipped_ai = len(candidates) - len(ai_pool)
+
+    print(Fore.CYAN + f"   Funnel: {len(all_stories)} → {len(candidates)} (blocked {blocked_count}) → top {len(ai_pool)} for AI")
+
+    # Step C: AI-score the shortlist
+    scored = []
+    ai_count = 0
+    ai_rejected = 0
+    for story in ai_pool:
+        pre_kws = story.pop("_pre_kws", [])
+        story.pop("_pre_score", None)
 
         if use_ai:
-            # Quick keyword check first to avoid wasting API calls
-            pre_score, pre_kws = score_story_fallback(story["title"], story["summary"])
-            if pre_score < AI_PREFILTER_MIN:
-                # Too boring for AI — skip entirely (don't even show low-score fallbacks)
-                skipped_ai += 1
-                continue
-
             card = score_and_generate_card(story["title"], story["summary"], story["source"])
             if card:
-                # AI may explicitly reject a story (safety / no trend potential)
                 if card.get("reject"):
                     logging.info(f"AI rejected: {card.get('reject_reason', '?')} | {story['title'][:60]}")
                     ai_rejected += 1
@@ -257,7 +258,7 @@ def run_scan():
                 story["scoring_method"] = "ai"
                 ai_count += 1
             else:
-                # AI call failed → use keyword fallback
+                # AI call failed → keyword fallback
                 score, kws = score_story_fallback(story["title"], story["summary"])
                 story["score"] = score
                 story["keywords"] = kws
@@ -268,29 +269,23 @@ def run_scan():
                 story["ai_reason"] = f"Keyword match: {', '.join(kws[:3])}" if kws else "Trending"
                 story["ai_description"] = f"{name} — based on breaking news. LFG! 🚀"
         else:
-            score, kws = score_story_fallback(story["title"], story["summary"])
-            story["score"] = score
-            story["keywords"] = kws
+            story["score"] = story.pop("_pre_score", 0)
+            story["keywords"] = pre_kws
             story["scoring_method"] = "fallback"
             name, ticker = _generate_fallback_name(story["title"])
             story["ai_name"] = name
             story["ai_ticker"] = ticker
-            story["ai_reason"] = f"Keyword match: {', '.join(kws[:3])}" if kws else "Trending"
+            story["ai_reason"] = f"Keyword match: {', '.join(pre_kws[:3])}" if pre_kws else "Trending"
             story["ai_description"] = f"{name} — based on breaking news. LFG! 🚀"
 
         scored.append(story)
 
-    summary_parts = []
-    if ai_count:
-        summary_parts.append(f"🤖 AI scored {ai_count}")
-    if skipped_ai:
-        summary_parts.append(f"skipped {skipped_ai} boring (saved ~${skipped_ai * 0.001:.3f})")
+    summary_parts = [f"🤖 AI scored {ai_count}/{len(ai_pool)}"]
     if ai_rejected:
         summary_parts.append(f"AI rejected {ai_rejected}")
-    if blocked_count:
-        summary_parts.append(f"blocked {blocked_count} sensitive")
-    if summary_parts:
-        print(Fore.CYAN + "   " + " | ".join(summary_parts))
+    if skipped_ai:
+        summary_parts.append(f"skipped {skipped_ai} (saved ~${skipped_ai * 0.001:.2f})")
+    print(Fore.CYAN + "   " + " | ".join(summary_parts))
 
     # Sort by score descending
     scored.sort(key=lambda x: x["score"], reverse=True)
