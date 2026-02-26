@@ -18,6 +18,7 @@ from config.settings import (
     RSS_FEEDS, HIGH_VALUE_KEYWORDS, LOW_VALUE_KEYWORDS,
     MIN_SCORE_TO_ALERT, MAX_STORY_AGE_MINUTES,
     ACTIVE_HOURS_START_UTC, ACTIVE_HOURS_END_UTC,
+    BLOCKED_TOPIC_KEYWORDS,
 )
 from scanner.ai_scorer import score_and_generate_card, ANTHROPIC_API_KEY
 
@@ -56,17 +57,51 @@ def _parse_pub_time(entry):
 
 
 def _is_fresh(entry):
-    """Check if story is recent enough."""
+    """Check if story is within the 12-hour window. Rejects articles with no timestamp."""
     pub = _parse_pub_time(entry)
     if pub is None:
-        return True  # Assume fresh if unknown
+        return False  # No timestamp = could be very old, skip it
     return (datetime.now(timezone.utc) - pub) < timedelta(minutes=MAX_STORY_AGE_MINUTES)
+
+
+def _is_blocked_topic(title, summary=""):
+    """Return True if the story matches a blocked/sensitive topic."""
+    text = (title + " " + summary).lower()
+    for kw in BLOCKED_TOPIC_KEYWORDS:
+        if kw.lower() in text:
+            return True, kw
+    return False, None
 
 
 def _story_id(entry):
     """Generate a unique ID for a story."""
     raw = getattr(entry, "id", None) or getattr(entry, "link", None) or getattr(entry, "title", "")
     return hashlib.md5(raw.encode()).hexdigest()
+
+
+_SKIP_WORDS = {
+    "the", "a", "an", "and", "or", "but", "in", "on", "at", "to",
+    "for", "of", "with", "by", "from", "is", "are", "was", "were",
+    "will", "be", "been", "have", "has", "had", "do", "does", "did",
+    "not", "that", "this", "it", "he", "she", "they", "we", "you",
+    "says", "said", "new", "after", "over", "about", "into", "could",
+}
+
+
+def _generate_fallback_name(title):
+    """Generate a basic token name + ticker from headline words."""
+    words = title.split()
+    interesting = [
+        w.strip(".,!?\"'()[]{}:")
+        for w in words
+        if w.lower().strip(".,!?\"'()[]{}:") not in _SKIP_WORDS and len(w) > 2
+    ]
+    if not interesting:
+        interesting = [w for w in words[:3]]
+
+    ticker = interesting[0][:6].upper() if interesting else "TREND"
+    name = " ".join(w.capitalize() for w in interesting[:3])
+    return name, ticker
 
 
 def score_story_fallback(title, summary=""):
@@ -172,19 +207,44 @@ def run_scan():
     if not all_stories:
         return []
 
-    # --- Phase 2: Score stories + generate full token card ---
+    # --- Phase 2: Pre-filter with keywords, then AI-score only promising stories ---
     use_ai = bool(ANTHROPIC_API_KEY)
     if use_ai:
-        print(Fore.CYAN + "   🤖 AI scoring + card generation (Claude Haiku)")
+        print(Fore.CYAN + "   🤖 AI scoring (keyword pre-filter to save costs)")
     else:
         print(Fore.YELLOW + "   ⚠️  No AI key — keyword fallback scoring")
 
+    # Pre-filter: only send stories to AI if they have keyword matches (score > 10)
+    AI_PREFILTER_MIN = 15  # must score at least 15 on keywords before calling AI
+
     scored = []
     ai_count = 0
+    skipped_ai = 0
+    blocked_count = 0
+    ai_rejected = 0
     for story in all_stories:
+        # Safety filter: reject blocked/sensitive topics before any AI call
+        is_blocked, matched_kw = _is_blocked_topic(story["title"], story["summary"])
+        if is_blocked:
+            logging.info(f"BLOCKED topic [{matched_kw}]: {story['title'][:60]}")
+            blocked_count += 1
+            continue
+
         if use_ai:
+            # Quick keyword check first to avoid wasting API calls
+            pre_score, pre_kws = score_story_fallback(story["title"], story["summary"])
+            if pre_score < AI_PREFILTER_MIN:
+                # Too boring for AI — skip entirely (don't even show low-score fallbacks)
+                skipped_ai += 1
+                continue
+
             card = score_and_generate_card(story["title"], story["summary"], story["source"])
             if card:
+                # AI may explicitly reject a story (safety / no trend potential)
+                if card.get("reject"):
+                    logging.info(f"AI rejected: {card.get('reject_reason', '?')} | {story['title'][:60]}")
+                    ai_rejected += 1
+                    continue
                 story["score"] = card["score"]
                 story["keywords"] = card.get("keywords", [])
                 story["ai_reason"] = card.get("reasoning", "")
@@ -195,20 +255,40 @@ def run_scan():
                 story["scoring_method"] = "ai"
                 ai_count += 1
             else:
+                # AI call failed → use keyword fallback
                 score, kws = score_story_fallback(story["title"], story["summary"])
                 story["score"] = score
                 story["keywords"] = kws
                 story["scoring_method"] = "fallback"
+                name, ticker = _generate_fallback_name(story["title"])
+                story["ai_name"] = name
+                story["ai_ticker"] = ticker
+                story["ai_reason"] = f"Keyword match: {', '.join(kws[:3])}" if kws else "Trending"
+                story["ai_description"] = f"{name} — based on breaking news. LFG! 🚀"
         else:
             score, kws = score_story_fallback(story["title"], story["summary"])
             story["score"] = score
             story["keywords"] = kws
             story["scoring_method"] = "fallback"
+            name, ticker = _generate_fallback_name(story["title"])
+            story["ai_name"] = name
+            story["ai_ticker"] = ticker
+            story["ai_reason"] = f"Keyword match: {', '.join(kws[:3])}" if kws else "Trending"
+            story["ai_description"] = f"{name} — based on breaking news. LFG! 🚀"
 
         scored.append(story)
 
+    summary_parts = []
     if ai_count:
-        print(Fore.CYAN + f"   🤖 AI generated {ai_count} token cards")
+        summary_parts.append(f"🤖 AI scored {ai_count}")
+    if skipped_ai:
+        summary_parts.append(f"skipped {skipped_ai} boring (saved ~${skipped_ai * 0.001:.3f})")
+    if ai_rejected:
+        summary_parts.append(f"AI rejected {ai_rejected}")
+    if blocked_count:
+        summary_parts.append(f"blocked {blocked_count} sensitive")
+    if summary_parts:
+        print(Fore.CYAN + "   " + " | ".join(summary_parts))
 
     # Sort by score descending
     scored.sort(key=lambda x: x["score"], reverse=True)

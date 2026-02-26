@@ -32,51 +32,64 @@ _cache_ttl = 600
 # Main scoring + card generation (single API call)
 # ---------------------------------------------------------------
 
-FULL_CARD_PROMPT = """You are a pump.fun meme token expert. Analyze this news story and create a COMPLETE token card.
+FULL_CARD_PROMPT = """You are a pump.fun meme token expert. Analyze this news story.
 
 NEWS STORY:
 Title: {title}
 Summary: {summary}
 Source: {source}
 
-SCORING CRITERIA (score each 0-25):
-1. VISUAL: Can this become a mascot/meme image? Animals, costumes, absurd visuals = high
-2. EMOTION: Does it trigger humor, outrage, surprise, absurdity? Strong emotion = high
-3. VIRALITY: Would crypto Twitter share this? Unusual + timely = high
-4. TIMING: Is this breaking news or old? Fresh and trending = high
+━━ STEP 1 — SAFETY CHECK ━━
+Set "reject": true and stop if the story involves ANY of:
+- Racism, ethnic hatred, white supremacy, antisemitism, islamophobia
+- Discrimination based on race, gender, sexual orientation, nationality
+- Religious persecution, mocking of religious groups or sacred symbols
+- Mass shootings, terrorist attacks, mass casualty events
+- Child abuse, pedophilia, human trafficking
+- Suicide or self-harm incidents
+- Serious tragedy where making a meme token would be deeply offensive
+- Generic boring corporate/policy news with zero viral potential
 
-TOKEN CARD RULES:
-- Name: 1-3 words, catchy, memeable, memorable (like "Dogwifhat", "Slurmit", "Bonk")
-- Ticker: 3-6 chars, ALL CAPS, easy to type
-- Description: 1-2 sentences MAX. Must be:
-  * Funny/irreverent tone (crypto degen style)
-  * Reference the viral moment from the news
-  * Create FOMO ("the next 100x", "you saw it here first")
-  * Include a call to action or meme phrase
-  * Under 200 characters ideally
-- Visual: Describe the ideal token profile picture (for image search)
+━━ STEP 2 — TREND POTENTIAL CHECK ━━
+Ask yourself: "Would crypto Twitter degenerates actually ape this right now?"
+Score TREND_POTENTIAL 0-25:
+- 20-25: Viral weird event, animal story, absurd celebrity moment → people WILL buy
+- 10-19: Interesting but niche, might get traction
+- 0-9: Generic news, no one would care, boring politics → REJECT if below 5
 
-EXAMPLES of great pump.fun descriptions:
-- "The frog that crashed the White House. Slurmit season is here. 🐸"
-- "He really showed up in a banana suit to Congress. $BNANA to the moon 🍌"
-- "When the bear market ends but your portfolio doesn't know yet 📈🐻"
+━━ STEP 3 — SCORE (only if not rejected) ━━
+Score each 0-25:
+1. VISUAL: Animal, costume, absurd image = HIGH. Text-only news = LOW
+2. EMOTION: Humor, outrage, WTF factor = HIGH. Neutral report = LOW
+3. TREND_POTENTIAL: Would degens buy this TODAY? Weird + timely = HIGH
+4. UNIQUENESS: Surprising/unusual = HIGH. Standard political speech = LOW
 
-Respond with ONLY this JSON (no markdown, no backticks, no extra text):
+IMPORTANT: If TREND_POTENTIAL < 5 or total score < 25 → reject it. Don't waste tokens.
+
+━━ TOKEN CARD RULES ━━
+- Name: 1-3 words, catchy (like "Dogwifhat", "Bonk", "Slurmit")
+- Ticker: 3-6 chars, ALL CAPS
+- Description: 1-2 sentences, funny/degen tone, FOMO, under 200 chars
+- Visual: describe the ideal meme profile picture for image generation
+
+Respond ONLY with this JSON (no markdown, no backticks):
 {{
+    "reject": false,
+    "reject_reason": "",
     "score": 75,
     "visual_score": 20,
     "emotion_score": 18,
-    "virality_score": 22,
-    "timing_score": 15,
-    "reasoning": "Brief 1-line explanation of the score",
+    "trend_score": 22,
+    "uniqueness_score": 15,
+    "reasoning": "1-line explanation why this trends",
     "name": "Slurmit",
     "ticker": "SLRM",
     "description": "The frog that crashed the White House. Slurmit season. 🐸",
-    "visual": "green cartoon frog mascot with protest sign",
+    "visual": "green cartoon frog mascot holding protest sign, cute style",
     "keywords": ["frog", "protest", "white house"]
 }}
 
-If the story is boring/sad/generic: score below 30 and still fill all fields."""
+If rejected: set reject=true, reject_reason briefly, score=0, fill other fields minimally."""
 
 
 def score_and_generate_card(title, summary="", source=""):
@@ -154,25 +167,30 @@ def score_and_generate_card(title, summary="", source=""):
         result = json.loads(text)
 
         # Validate and clean
+        result["reject"] = bool(result.get("reject", False))
+        result["reject_reason"] = str(result.get("reject_reason", ""))[:100]
         result["score"] = max(0, min(100, int(result.get("score", 0))))
         result["name"] = str(result.get("name", "Token"))[:40]
         result["ticker"] = str(result.get("ticker", "TOKEN"))[:8].upper().replace(" ", "")
         result["description"] = str(result.get("description", ""))[:280]
-        result["visual"] = str(result.get("visual", ""))[:100]
-        result["reasoning"] = str(result.get("reasoning", ""))[:150]
+        result["visual"] = str(result.get("visual", ""))[:150]
+        result["reasoning"] = str(result.get("reasoning", ""))[:200]
         result["keywords"] = result.get("keywords", [])[:5]
 
         # Ensure description exists and is good
-        if len(result["description"]) < 10:
+        if not result["reject"] and len(result["description"]) < 10:
             result["description"] = f"{result['name']} — inspired by trending news. LFG! 🚀"
 
         # Cache
         _cache[cache_key] = (time.time(), result)
 
-        logging.info(
-            f"AI Card: {result['score']}/100 | {result['name']} (${result['ticker']}) | "
-            f"Desc: {result['description'][:60]} | Story: {title[:50]}"
-        )
+        if result["reject"]:
+            logging.info(f"AI REJECTED: {result['reject_reason']} | Story: {title[:60]}")
+        else:
+            logging.info(
+                f"AI Card: {result['score']}/100 | {result['name']} (${result['ticker']}) | "
+                f"Desc: {result['description'][:60]} | Story: {title[:50]}"
+            )
 
         return result
 
