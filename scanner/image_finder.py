@@ -104,20 +104,33 @@ def _generate_with_pollinations(prompt, ticker):
             f"https://image.pollinations.ai/prompt/{encoded}"
             f"?width=512&height=512&nologo=true&seed={seed}"
         )
-        resp = requests.get(url, timeout=45, headers={"User-Agent": "TrendBot/3.0"})
+        logging.info(f"Pollinations: requesting image for '{ticker}'")
+        resp = requests.get(url, timeout=60, headers={"User-Agent": "TrendBot/3.0"})
+
         if resp.status_code != 200:
+            logging.warning(f"Pollinations: HTTP {resp.status_code}")
+            return None
+
+        # Must be an actual image, not an HTML error page
+        content_type = resp.headers.get("content-type", "")
+        if "image" not in content_type:
+            logging.warning(f"Pollinations: got non-image content-type '{content_type}'")
             return None
 
         content = resp.content
         if len(content) < 3000:
+            logging.warning(f"Pollinations: response too small ({len(content)} bytes)")
             return None
 
         filename = f"{ticker.lower()}_{hashlib.md5(content[:500]).hexdigest()[:8]}_ai.png"
         filepath = os.path.join(IMAGE_DIR, filename)
-        return _save_image(content, filepath)
+        result = _save_image(content, filepath)
+        if not result:
+            logging.warning(f"Pollinations: save failed for '{ticker}'")
+        return result
 
     except Exception as e:
-        logging.debug(f"Pollinations failed: {e}")
+        logging.warning(f"Pollinations failed: {e}")
         return None
 
 
@@ -136,7 +149,7 @@ def _search_ddg(query, ticker):
                 if fp:
                     return fp
     except Exception as e:
-        logging.debug(f"DDG search failed: {e}")
+        logging.warning(f"DDG search failed: {e}")
     return None
 
 
@@ -154,10 +167,15 @@ def _search_bing(query, ticker):
         }
         resp = requests.get(url, headers=headers, timeout=10)
         if resp.status_code != 200:
+            logging.warning(f"Bing: HTTP {resp.status_code} for '{query}'")
             return None
 
-        # Bing embeds image URLs in JSON-like blocks
+        # Bing embeds image URLs in JSON-like blocks — two known patterns
         img_urls = re.findall(r'"murl"\s*:\s*"(https?://[^"]+)"', resp.text)
+        if not img_urls:
+            img_urls = re.findall(r'imgurl=([^&"]+)', resp.text)
+
+        logging.info(f"Bing: found {len(img_urls)} URLs for '{query}'")
         for img_url in img_urls[:8]:
             if any(x in img_url.lower() for x in [".svg", "icon", "logo", "pixel"]):
                 continue
@@ -166,7 +184,7 @@ def _search_bing(query, ticker):
                 return fp
 
     except Exception as e:
-        logging.debug(f"Bing search failed: {e}")
+        logging.warning(f"Bing search failed: {e}")
     return None
 
 
