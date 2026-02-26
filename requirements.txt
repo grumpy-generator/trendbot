@@ -19,3 +19,6 @@ base58>=2.1.1
 
 # Image processing (resize, crop for pump.fun)
 Pillow>=10.2.0
+
+# Image search
+duckduckgo-search>=6.1.0
