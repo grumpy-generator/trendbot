@@ -204,7 +204,7 @@ def run_scan_cycle(force=False):
         # Prevents re-alerting on a 3-day-old trend just because a new article appeared.
         topic_kws = story.get("keywords", [])[:4]
         if is_topic_seen(topic_kws):
-            print(Fore.YELLOW + f"  ⏭  Topic already alerted in last 72h — skipping")
+            print(Fore.YELLOW + f"  ⏭  Topic already alerted in last 5 days — skipping")
             continue
 
         # 3. Find/generate token image

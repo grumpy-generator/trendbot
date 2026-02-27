@@ -52,20 +52,24 @@ Set "reject": true and stop if the story involves ANY of:
 
 ━━ STEP 2 — FRESHNESS CHECK ━━
 Ask yourself: "Is the underlying event ACTUALLY happening right now?"
-Reject (reject=true, reject_reason="stale") if ANY of these are true:
-- The original event happened more than 2 days ago (even if Fox/CNN/AP just
-  discovered it — mainstream outlets re-post trends 24-48h late, that makes
-  the underlying trend STALE, not fresh)
-- The article is about something from weeks, months, or years ago
-- The story references a past event with no genuinely new development today
-- Phrases like "years ago", "back in 20XX", "the classic", "remember when"
-  appear in the article
-If the source is a known re-poster (Fox News, CNN, AP, NY Post, NY Daily News,
-BBC, NBC, CBS, ABC News, MSNBC) be especially critical: only pass freshness
-if you are confident the event broke TODAY or YESTERDAY.
-Exception: a genuinely NEW development (new arrest, new video, new response)
-on an older story can pass — but the NEW development must be what makes it
-memeable, not the original event.
+
+First, check the source type:
+A) EARLY-SIGNAL sources (Reddit, Imgur, Know Your Meme, Fark, Bored Panda,
+   LADbible, Unilad, Oddity Central, Daily Dot, ViralHog, Cracked, IFLScience,
+   Futurism, TMZ, Barstool, Mediaite, ClickHole) — these BREAK trends.
+   For these: reject only if the article is clearly about something from weeks/
+   months/years ago, or contains "years ago", "back in 20XX", "remember when".
+   If it's a fresh post about something that just happened or just went viral → pass.
+
+B) MAINSTREAM RE-POSTERS (Fox News, CNN, AP, BBC, NBC, CBS, ABC News, MSNBC,
+   NY Post, NY Daily News, Reuters, NPR, Washington Post, NY Times) — these
+   REPOST trends that already happened 24-48h earlier.
+   For these: reject if the underlying event started more than 1 day ago.
+   Only pass if the event genuinely broke TODAY or the article contains a NEW
+   development (new arrest, new video, new statement) that changes the story.
+
+Exception for both: a truly new development (new arrest, new video, new
+response) on an older event can pass if the NEW part is what's memeable.
 
 ━━ STEP 3 — TREND POTENTIAL CHECK ━━
 Ask yourself: "Would crypto Twitter degenerates actually ape this right now?"

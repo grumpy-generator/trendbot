@@ -225,9 +225,11 @@ def run_scan():
         story["_pre_kws"] = pre_kws
         candidates.append(story)
 
-    # Step B: sort by keyword score, keep only top 15 for AI
+    # Step B: sort by keyword score, keep only top 30 for AI
+    # (49 feeds now — viral Reddit content rarely has meme keywords so needs
+    #  a larger pool to ensure good stories aren't cut before AI sees them)
     candidates.sort(key=lambda x: x["_pre_score"], reverse=True)
-    AI_CAP = 15
+    AI_CAP = 30
     ai_pool = candidates[:AI_CAP]
     skipped_ai = len(candidates) - len(ai_pool)
 
