@@ -50,14 +50,31 @@ Set "reject": true and stop if the story involves ANY of:
 - Serious tragedy where making a meme token would be deeply offensive
 - Generic boring corporate/policy news with zero viral potential
 
-━━ STEP 2 — TREND POTENTIAL CHECK ━━
+━━ STEP 2 — FRESHNESS CHECK ━━
+Ask yourself: "Is the underlying event ACTUALLY happening right now?"
+Reject (reject=true, reject_reason="stale") if ANY of these are true:
+- The original event happened more than 2 days ago (even if Fox/CNN/AP just
+  discovered it — mainstream outlets re-post trends 24-48h late, that makes
+  the underlying trend STALE, not fresh)
+- The article is about something from weeks, months, or years ago
+- The story references a past event with no genuinely new development today
+- Phrases like "years ago", "back in 20XX", "the classic", "remember when"
+  appear in the article
+If the source is a known re-poster (Fox News, CNN, AP, NY Post, NY Daily News,
+BBC, NBC, CBS, ABC News, MSNBC) be especially critical: only pass freshness
+if you are confident the event broke TODAY or YESTERDAY.
+Exception: a genuinely NEW development (new arrest, new video, new response)
+on an older story can pass — but the NEW development must be what makes it
+memeable, not the original event.
+
+━━ STEP 3 — TREND POTENTIAL CHECK ━━
 Ask yourself: "Would crypto Twitter degenerates actually ape this right now?"
 Score TREND_POTENTIAL 0-25:
 - 20-25: Viral weird event, animal story, absurd celebrity moment → people WILL buy
 - 10-19: Interesting but niche, might get traction
 - 0-9: Generic news, no one would care, boring politics → REJECT if below 5
 
-━━ STEP 3 — SCORE (only if not rejected) ━━
+━━ STEP 4 — SCORE (only if not rejected) ━━
 Score each 0-25:
 1. VISUAL: Animal, costume, absurd image = HIGH. Text-only news = LOW
 2. EMOTION: Humor, outrage, WTF factor = HIGH. Neutral report = LOW
@@ -73,7 +90,9 @@ IMPORTANT: If TREND_POTENTIAL < 5 or total score < 25 → reject it. Don't waste
   If none found, invent a 1-3 word catchy name (like "Dogwifhat", "Bonk").
 - Ticker: 3-6 chars, ALL CAPS, derived from the name
 - Description: 1-2 sentences, funny/degen tone, FOMO, under 200 chars
-- Visual: describe the ideal meme profile picture for image search/generation
+- Visual: describe the ideal meme profile picture for image search/generation.
+  CRITICAL: absolutely NO text, NO words, NO letters, NO captions, NO signs
+  with writing anywhere in the image. Pure cartoon/mascot/illustration only.
 
 Respond ONLY with this JSON (no markdown, no backticks):
 {{
@@ -88,7 +107,7 @@ Respond ONLY with this JSON (no markdown, no backticks):
     "name": "Slurmit",
     "ticker": "SLRM",
     "description": "The frog that crashed the White House. Slurmit season. 🐸",
-    "visual": "green cartoon frog mascot holding protest sign, cute style",
+    "visual": "green cartoon frog mascot in protest pose, cute chibi style, no text no words",
     "keywords": ["frog", "protest", "white house"]
 }}
 
@@ -245,10 +264,11 @@ Respond ONLY with JSON:
 }}
 
 Rules:
-- Name: 1-3 words, catchy, memeable
+- Name: 1-3 words, catchy, memeable (use any nickname already in the article first)
 - Ticker: 3-6 chars, ALL CAPS
 - Description: funny, degen tone, creates FOMO, 1-2 sentences MAX
-- Must be related to the news story"""
+- Must be related to the news story
+- Visual: NO text, NO words, NO letters anywhere in the image. Cartoon/mascot only."""
 
         resp = requests.post(
             "https://api.anthropic.com/v1/messages",
