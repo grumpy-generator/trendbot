@@ -59,17 +59,27 @@ def _is_news_photo_url(url):
     return False
 
 
-def find_token_image(story_title, ticker, name, visual_hint="", keywords=None):
+def find_token_image(story_title, ticker, name, visual_hint="", keywords=None,
+                     source_image_url=None):
     """
     Find or create an image for a token.
 
     Strategy:
-    1. DuckDuckGo image search — finds the real viral photo/meme spreading online
+    0. Source image (Reddit post image, Imgur direct link, etc.) — the actual
+       viral image IS the trend. Always prefer this over a web search.
+    1. DuckDuckGo image search — finds real memes/viral images
     2. Bing image search — scraping fallback
     3. Pollinations.ai — AI generation when web search finds nothing relevant
     4. Placeholder — colored square with ticker text
     """
     os.makedirs(IMAGE_DIR, exist_ok=True)
+
+    # 0. Use the image from the source post itself (Reddit, Imgur, etc.)
+    if source_image_url:
+        fp = _download_and_save(source_image_url, ticker)
+        if fp:
+            logging.info(f"Image: source post image used for '{ticker}' ({source_image_url[:60]})")
+            return fp
 
     queries = _build_search_queries(visual_hint, name, keywords)
 
@@ -292,6 +302,7 @@ def _normalize_image(img):
 # ---------------------------------------------------------------
 
 def _create_placeholder(ticker, name):
+    # Plain colored square — no text, no words, no letters on any image
     if not HAS_PIL:
         return None
     try:
@@ -301,29 +312,6 @@ def _create_placeholder(ticker, name):
             (156, 39, 176), (244, 67, 54), (0, 188, 212), (255, 193, 7),
         ]
         img = Image.new("RGB", TARGET_SIZE, colors[seed % len(colors)])
-        draw = ImageDraw.Draw(img)
-
-        text = f"${ticker}"
-        try:
-            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 72)
-        except (IOError, OSError):
-            font = ImageFont.load_default()
-
-        bbox = draw.textbbox((0, 0), text, font=font)
-        tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
-        x, y = (TARGET_SIZE[0] - tw) // 2, (TARGET_SIZE[1] - th) // 2
-        draw.text((x + 2, y + 2), text, fill=(0, 0, 0, 128), font=font)
-        draw.text((x, y), text, fill="white", font=font)
-
-        if name:
-            try:
-                sfont = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 28)
-            except (IOError, OSError):
-                sfont = font
-            b2 = draw.textbbox((0, 0), name, font=sfont)
-            nw = b2[2] - b2[0]
-            draw.text(((TARGET_SIZE[0] - nw) // 2, y + th + 20), name, fill="white", font=sfont)
-
         filepath = os.path.join(IMAGE_DIR, f"{ticker.lower()}_placeholder.png")
         img.save(filepath, "PNG")
         return filepath

@@ -92,7 +92,9 @@ IMPORTANT: If TREND_POTENTIAL < 5 or total score < 25 → reject it. Don't waste
   has already given this thing (e.g. "Slurmit", "Hawk Tuah", "Lina").
   If one exists, use it — meme culture naming wins over AI creativity.
   If none found, invent a 1-3 word catchy name (like "Dogwifhat", "Bonk").
-- Ticker: 3-6 chars, ALL CAPS, derived from the name
+- Ticker: 3-6 chars, ALL CAPS — take letters DIRECTLY from the name in order,
+  no invented or substituted letters. "DachFrog" → "DACHF", "Slurmit" → "SLRMT",
+  "Hawk Tuah" → "HAWKT". Never guess or add letters not present in the name.
 - Description: 1-2 sentences, funny/degen tone, FOMO, under 200 chars
 - Visual: describe the ideal meme profile picture for image search/generation.
   CRITICAL: absolutely NO text, NO words, NO letters, NO captions, NO signs

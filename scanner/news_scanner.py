@@ -80,6 +80,48 @@ def _story_id(entry):
     return hashlib.md5(raw.encode()).hexdigest()
 
 
+def _extract_entry_image(entry):
+    """
+    Pull the actual image URL out of an RSS entry.
+    Reddit/Imgur/etc. embed the post image in media_content or enclosures.
+    Using this means we get the viral image itself, not a random search result.
+    """
+    # 1. media:content (Reddit, Imgur, many modern feeds)
+    media = getattr(entry, "media_content", None)
+    if media:
+        for m in media:
+            url = m.get("url", "")
+            if url and any(url.lower().endswith(ext) for ext in (".jpg", ".jpeg", ".png", ".gif", ".webp")):
+                return url
+        # accept non-extension URLs from media_content too (e.g. i.redd.it)
+        for m in media:
+            url = m.get("url", "")
+            if url and ("i.redd.it" in url or "i.imgur.com" in url or "preview.redd.it" in url):
+                return url
+
+    # 2. enclosures (podcast/media feeds sometimes use this)
+    enclosures = getattr(entry, "enclosures", None)
+    if enclosures:
+        for enc in enclosures:
+            url = enc.get("href", enc.get("url", ""))
+            if url and "image" in enc.get("type", "image"):
+                return url
+
+    # 3. <img> tag inside the summary/content HTML
+    content = getattr(entry, "content", [])
+    html = content[0].get("value", "") if content else getattr(entry, "summary", "")
+    if html:
+        import re as _re
+        m = _re.search(r'<img[^>]+src=["\']([^"\']+)["\']', html)
+        if m:
+            url = m.group(1)
+            # Skip tiny icons and tracking pixels
+            if url and not any(x in url for x in ["1x1", "pixel", "icon", "emoji"]):
+                return url
+
+    return None
+
+
 _SKIP_WORDS = {
     "the", "a", "an", "and", "or", "but", "in", "on", "at", "to",
     "for", "of", "with", "by", "from", "is", "are", "was", "were",
@@ -175,6 +217,7 @@ def _scan_single_feed(feed_name, feed_url):
                 "link": link,
                 "pub_time": pub_time,
                 "published": pub_time.strftime("%Y-%m-%d %H:%M UTC") if pub_time else "Unknown",
+                "source_image_url": _extract_entry_image(entry),
             })
 
     except Exception as e:

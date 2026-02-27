@@ -215,6 +215,7 @@ def run_scan_cycle(force=False):
             name=story.get("ai_name", ""),
             visual_hint=story.get("ai_visual", ""),
             keywords=story.get("keywords", []),
+            source_image_url=story.get("source_image_url"),
         )
         if image_path:
             print(Fore.GREEN + f"  ✅ Image: {image_path}")
