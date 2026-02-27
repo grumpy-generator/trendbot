@@ -298,22 +298,45 @@ def get_pending_commands():
 
         if "callback_query" in update:
             cb = update["callback_query"]
+
+            # Security: only accept callbacks from the authorised chat
+            sender_chat = str(cb.get("message", {}).get("chat", {}).get("id", ""))
+            if sender_chat != str(TELEGRAM_CHAT_ID):
+                logging.warning(f"Telegram: callback from unauthorized chat {sender_chat} — ignored")
+                _api("answerCallbackQuery", {"callback_query_id": cb["id"]})
+                continue
+
             data = cb.get("data", "")
+            # Only allow known safe actions — reject anything else
             action, *rest = data.split("|")
+            if action not in ("sim", "real", "skip", "cancel"):
+                logging.warning(f"Telegram: unknown callback action '{action}' — ignored")
+                _api("answerCallbackQuery", {"callback_query_id": cb["id"]})
+                continue
+
             story_id = rest[0] if rest else ""
             _api("answerCallbackQuery", {"callback_query_id": cb["id"]})
             commands.append({
                 "type": "callback",
-                "action": action,   # sim, real, skip, cancel
+                "action": action,
                 "story_id": story_id,
             })
 
         elif "message" in update:
+            # Security: only accept messages from the authorised chat
+            sender_chat = str(update["message"].get("chat", {}).get("id", ""))
+            if sender_chat != str(TELEGRAM_CHAT_ID):
+                logging.warning(f"Telegram: message from unauthorized chat {sender_chat} — ignored")
+                continue
+
             text = update["message"].get("text", "").strip()
             if text.startswith("/"):
-                commands.append({
-                    "type": "command",
-                    "action": text.split()[0].lower(),
-                })
+                # Only allow known safe commands
+                cmd = text.split()[0].lower()
+                if cmd in ("/status", "/tokens", "/pause", "/resume", "/stop",
+                           "/summary", "/scan", "/test"):
+                    commands.append({"type": "command", "action": cmd})
+                else:
+                    logging.warning(f"Telegram: unknown command '{cmd}' — ignored")
 
     return commands

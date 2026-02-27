@@ -16,11 +16,13 @@
 
 import os
 import re
+import socket
 import logging
 import hashlib
+import ipaddress
 import requests
 from io import BytesIO
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlparse
 
 try:
     from PIL import Image, ImageDraw, ImageFont
@@ -36,6 +38,49 @@ except ImportError:
 
 IMAGE_DIR = "images"
 TARGET_SIZE = (512, 512)
+
+# ---------------------------------------------------------------
+# Security: SSRF guard + filename sanitiser
+# ---------------------------------------------------------------
+
+def _is_safe_url(url: str) -> bool:
+    """
+    Reject URLs that could be used for SSRF (Server-Side Request Forgery).
+    Allows only http/https to public IPs — blocks loopback, RFC-1918 private
+    ranges, link-local (169.254.x.x), cloud metadata endpoints, and all
+    non-HTTP schemes (file://, javascript://, data://, etc.).
+    """
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+        # Block obvious localhost aliases
+        if hostname.lower() in ("localhost", "0.0.0.0", "::1"):
+            return False
+        # Resolve hostname → IP and check it's public
+        try:
+            ip = ipaddress.ip_address(socket.gethostbyname(hostname))
+        except (socket.gaierror, ValueError):
+            return False  # can't resolve → reject
+        if (ip.is_private or ip.is_loopback or ip.is_link_local
+                or ip.is_reserved or ip.is_multicast or ip.is_unspecified):
+            return False
+        return True
+    except Exception:
+        return False
+
+
+def _safe_ticker(ticker: str) -> str:
+    """
+    Sanitise ticker for use in file-system paths.
+    Strips everything that isn't A-Z 0-9 — prevents path-traversal attacks
+    (e.g. a ticker like '../../evil' becomes 'evil').
+    """
+    clean = re.sub(r"[^A-Za-z0-9]", "", ticker)
+    return clean[:20] if clean else "TOKEN"
 
 # News/photojournalism domains that produce real photos — not cartoon mascots.
 # Images from these domains are filtered out.
@@ -158,7 +203,7 @@ def _generate_with_pollinations(prompt, ticker):
             logging.warning(f"Pollinations: response too small ({len(content)} bytes)")
             return None
 
-        filename = f"{ticker.lower()}_{hashlib.md5(content[:500]).hexdigest()[:8]}_ai.png"
+        filename = f"{_safe_ticker(ticker)}_{hashlib.md5(content[:500]).hexdigest()[:8]}_ai.png"
         filepath = os.path.join(IMAGE_DIR, filename)
         result = _save_image(content, filepath)
         if not result:
@@ -244,6 +289,10 @@ def _build_search_queries(visual_hint, name, keywords):
 # ---------------------------------------------------------------
 
 def _download_and_save(image_url, ticker):
+    # SSRF guard: reject private IPs, loopback, non-HTTP(S), etc.
+    if not _is_safe_url(image_url):
+        logging.warning(f"Image blocked (SSRF guard): {image_url[:80]}")
+        return None
     try:
         resp = requests.get(image_url, timeout=8, stream=True, headers={
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
@@ -255,8 +304,9 @@ def _download_and_save(image_url, ticker):
         if len(content) < 5000 or len(content) > 10_000_000:
             return None
 
+        safe = _safe_ticker(ticker)
         img_hash = hashlib.md5(content[:1000]).hexdigest()[:8]
-        filepath = os.path.join(IMAGE_DIR, f"{ticker.lower()}_{img_hash}.png")
+        filepath = os.path.join(IMAGE_DIR, f"{safe}_{img_hash}.png")
         return _save_image(content, filepath)
 
     except Exception as e:
@@ -312,7 +362,7 @@ def _create_placeholder(ticker, name):
             (156, 39, 176), (244, 67, 54), (0, 188, 212), (255, 193, 7),
         ]
         img = Image.new("RGB", TARGET_SIZE, colors[seed % len(colors)])
-        filepath = os.path.join(IMAGE_DIR, f"{ticker.lower()}_placeholder.png")
+        filepath = os.path.join(IMAGE_DIR, f"{_safe_ticker(ticker)}_placeholder.png")
         img.save(filepath, "PNG")
         return filepath
 
