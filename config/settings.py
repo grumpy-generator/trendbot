@@ -52,66 +52,75 @@ MAX_ACTIVE_POSITIONS  = 5
 
 # ---------------------------------------------------------------
 # NEWS SOURCES
-# Mix: a few mainstream for breaking news + heavy niche/weird-news
-# coverage that mainstream outlets pick up 24-48h later.
+#
+# Philosophy: we want EARLY signal, before crypto Twitter picks it up.
+# CoinDesk / CoinTelegraph / crypto subreddits are DOWNSTREAM — they
+# report on trends 24-48h after the meme already spread elsewhere.
+# Instead: scan the places where weird/viral stuff ORIGINATES.
 # ---------------------------------------------------------------
 RSS_FEEDS = [
-    # --- MAINSTREAM (minimal — just for major breaking news) ---
-    ("AP News Top Stories",     "https://feeds.apnews.com/rss/topnews"),
+    # --- BREAKING / WEIRD NEWS (national + tabloid) ---
+    # Kept small: we just need the one that breaks the story, not 10 outlets
     ("AP News Entertainment",   "https://feeds.apnews.com/rss/entertainment"),
-    ("Fox News Latest",         "https://moxie.foxnews.com/google-publisher/latest.xml"),
+    ("AP News Oddities",        "https://feeds.apnews.com/rss/oddities"),
     ("NY Post",                 "https://nypost.com/feed/"),
+    ("NY Post Weird",           "https://nypost.com/weird/feed/"),
+    ("Fox News Latest",         "https://moxie.foxnews.com/google-publisher/latest.xml"),
     ("Mediaite",                "https://www.mediaite.com/feed/"),
+    ("TMZ",                     "https://www.tmz.com/rss.xml"),
+    ("People Magazine",         "https://people.com/feed/"),
+    ("Barstool Sports",         "https://www.barstoolsports.com/rss"),
 
-
-    # --- VIRAL / POP CULTURE / WEIRD NEWS (our edge) ---
+    # --- VIRAL / MEME CULTURE (where trends actually start) ---
+    ("Know Your Meme",          "https://knowyourmeme.com/newsfeed.rss"),
     ("Fark",                    "https://www.fark.com/fark.rss"),
     ("Oddity Central",          "https://www.odditycentral.com/feed"),
-    ("Bored Panda",             "https://www.boredpanda.com/feed/"),
     ("Daily Dot",               "https://www.dailydot.com/feed/"),
-    ("Know Your Meme",          "https://knowyourmeme.com/newsfeed.rss"),
+    ("Bored Panda",             "https://www.boredpanda.com/feed/"),
     ("Cheezburger",             "https://cheezburger.com/feed"),
     ("LADbible",                "https://www.ladbible.com/rss"),
     ("Unilad",                  "https://www.unilad.com/feed/"),
-    ("TMZ",                     "https://www.tmz.com/rss.xml"),
-    ("People Magazine",         "https://people.com/feed/"),
-    ("E! Online",               "https://www.eonline.com/syndication/feeds/rssfeeds/topstories.xml"),
-    ("Barstool Sports",         "https://www.barstoolsports.com/rss"),
+    ("ViralHog",                "https://www.viralhog.com/feed"),
+    ("Cracked",                 "https://www.cracked.com/feed"),
+    ("The Onion",               "https://www.theonion.com/rss"),
+    ("ClickHole",               "https://www.clickhole.com/rss"),
+    ("IFLScience",              "https://www.iflscience.com/rss.xml"),
+    ("Futurism",                "https://futurism.com/feed"),
 
-    # --- REDDIT VIRAL (early signal, 30-60 min ahead of mainstream) ---
+    # --- IMGUR (visual virality — where memes circulate before Twitter) ---
+    ("Imgur Hot",               "https://imgur.com/hot.rss"),
+    ("Imgur Viral",             "https://imgur.com/viral.rss"),
+
+    # --- REDDIT VIRAL (best early-signal, 30-60 min ahead of mainstream) ---
     ("Reddit Popular",          "https://www.reddit.com/r/popular/.rss"),
     ("Reddit All Rising",       "https://www.reddit.com/r/all/rising/.rss"),
-    ("Reddit Damnthatsinteresting", "https://www.reddit.com/r/Damnthatsinteresting/.rss"),
     ("Reddit nottheonion",      "https://www.reddit.com/r/nottheonion/.rss"),
+    ("Reddit Damnthatsinteresting", "https://www.reddit.com/r/Damnthatsinteresting/.rss"),
     ("Reddit mildlyinteresting","https://www.reddit.com/r/mildlyinteresting/.rss"),
-    ("Reddit BeAmazed",         "https://www.reddit.com/r/BeAmazed/.rss"),
     ("Reddit interestingasfuck","https://www.reddit.com/r/interestingasfuck/.rss"),
+    ("Reddit BeAmazed",         "https://www.reddit.com/r/BeAmazed/.rss"),
     ("Reddit nextfuckinglevel", "https://www.reddit.com/r/nextfuckinglevel/.rss"),
     ("Reddit WTF",              "https://www.reddit.com/r/WTF/.rss"),
     ("Reddit PublicFreakout",   "https://www.reddit.com/r/PublicFreakout/.rss"),
-    ("Reddit HumansBeingBros",  "https://www.reddit.com/r/HumansBeingBros/.rss"),
     ("Reddit AnimalsBeingDerps","https://www.reddit.com/r/AnimalsBeingDerps/.rss"),
     ("Reddit Unexpected",       "https://www.reddit.com/r/Unexpected/.rss"),
+    ("Reddit HumansBeingBros",  "https://www.reddit.com/r/HumansBeingBros/.rss"),
+    ("Reddit FloridaMan",       "https://www.reddit.com/r/FloridaMan/.rss"),
     ("Reddit news",             "https://www.reddit.com/r/news/.rss"),
     ("Reddit worldnews",        "https://www.reddit.com/r/worldnews/.rss"),
+    ("Reddit TikTokCringe",     "https://www.reddit.com/r/TikTokCringe/.rss"),
+    ("Reddit LivestreamFail",   "https://www.reddit.com/r/LivestreamFail/.rss"),
+    ("Reddit CrazyFuckingVideos","https://www.reddit.com/r/CrazyFuckingVideos/.rss"),
+    ("Reddit shitposting",      "https://www.reddit.com/r/shitposting/.rss"),
 
-    # --- CRYPTO & MEME CULTURE ---
-    ("CoinDesk",                "https://www.coindesk.com/arc/outboundfeeds/rss/"),
-    ("Decrypt",                 "https://decrypt.co/feed"),
-    ("CoinTelegraph",           "https://cointelegraph.com/rss"),
-    ("Reddit Crypto",           "https://www.reddit.com/r/CryptoCurrency/.rss"),
-    ("Reddit Solana",           "https://www.reddit.com/r/solana/.rss"),
-    ("Reddit CryptoMoonShots",  "https://www.reddit.com/r/CryptoMoonShots/.rss"),
-    ("Reddit SatoshiStreetBets","https://www.reddit.com/r/SatoshiStreetBets/.rss"),
+    # --- SPORTS / POP CULTURE (athletes and celebrities go viral fast) ---
+    ("ESPN Top Headlines",      "https://www.espn.com/espn/rss/news"),
+    ("Deadspin",                "https://deadspin.com/rss"),
+    ("E! Online",               "https://www.eonline.com/syndication/feeds/rssfeeds/topstories.xml"),
 
-    # --- TECH / WEIRD SCIENCE ---
-    ("The Verge",               "https://www.theverge.com/rss/index.xml"),
-    ("Futurism",                "https://futurism.com/feed"),
-    ("IFLScience",              "https://www.iflscience.com/rss.xml"),
-
-    # --- LOCAL US WEIRD NEWS (breaks stories before nationals) ---
-    ("NY Post Weird",           "https://nypost.com/weird/feed/"),
+    # --- LOCAL WEIRD NEWS (breaks before nationals — FloridaMan effect) ---
     ("WSVN Miami",              "https://wsvn.com/feed/"),
+    ("NY Daily News",           "https://www.nydailynews.com/arcio/rss/"),
 ]
 
 # ---------------------------------------------------------------

@@ -5,7 +5,7 @@
 
   Article-level dedup (_seen_ids in news_scanner.py) only stops
   the exact same article from being sent twice. This layer stops
-  the SAME TOPIC from being re-alerted within 72 hours even when
+  the SAME TOPIC from being re-alerted within 5 days even when
   fresh new articles about that trend appear.
 ==============================================================
 """
@@ -17,7 +17,7 @@ import logging
 
 _DATA_DIR = "data"
 _STORE_FILE = os.path.join(_DATA_DIR, "seen_topics.json")
-_TOPIC_TTL = 72 * 3600  # 72 hours
+_TOPIC_TTL = 5 * 24 * 3600  # 5 days
 
 
 def _load_store():
@@ -49,7 +49,7 @@ def _make_topic_key(keywords):
 
 def is_topic_seen(keywords):
     """
-    Return True if this keyword combination was alerted in the last 72 hours.
+    Return True if this keyword combination was alerted in the last 5 days.
     Call this BEFORE sending an alert to avoid re-alerting stale trends.
     """
     key = _make_topic_key(keywords)

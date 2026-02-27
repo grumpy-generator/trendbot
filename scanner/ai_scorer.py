@@ -67,10 +67,13 @@ Score each 0-25:
 IMPORTANT: If TREND_POTENTIAL < 5 or total score < 25 → reject it. Don't waste tokens.
 
 ━━ TOKEN CARD RULES ━━
-- Name: 1-3 words, catchy (like "Dogwifhat", "Bonk", "Slurmit")
-- Ticker: 3-6 chars, ALL CAPS
+- Name: FIRST scan the article text for any nickname/label the internet
+  has already given this thing (e.g. "Slurmit", "Hawk Tuah", "Lina").
+  If one exists, use it — meme culture naming wins over AI creativity.
+  If none found, invent a 1-3 word catchy name (like "Dogwifhat", "Bonk").
+- Ticker: 3-6 chars, ALL CAPS, derived from the name
 - Description: 1-2 sentences, funny/degen tone, FOMO, under 200 chars
-- Visual: describe the ideal meme profile picture for image generation
+- Visual: describe the ideal meme profile picture for image search/generation
 
 Respond ONLY with this JSON (no markdown, no backticks):
 {{

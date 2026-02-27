@@ -91,21 +91,21 @@ def evaluate_competition(existing_tokens):
     count = len(existing_tokens)
     top_mcap = max((t.get("market_cap", 0) for t in existing_tokens), default=0)
 
-    if count == 1 and top_mcap < 10_000:
+    if count == 1 and top_mcap < 5_000:
         return {
             "should_launch": True,
             "confidence": "MEDIUM",
             "reason": f"1 token exists, low mcap (${top_mcap:,.0f}) — still early",
             "existing": existing_tokens,
         }
-    elif count <= 3 and top_mcap < 50_000:
+    elif count <= 2 and top_mcap < 10_000:
         return {
             "should_launch": True,
             "confidence": "LOW",
-            "reason": f"{count} tokens, top mcap ${top_mcap:,.0f} — competitive",
+            "reason": f"{count} tokens, top mcap ${top_mcap:,.0f} — competitive but possible",
             "existing": existing_tokens,
         }
-    elif top_mcap > 100_000:
+    elif top_mcap >= 20_000:
         return {
             "should_launch": False,
             "confidence": "SKIP",

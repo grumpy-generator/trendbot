@@ -200,26 +200,6 @@ def run_scan_cycle(force=False):
             print(Fore.RED + f"  ⚠️  Skipping: {evaluation['reason']}")
             continue
 
-        # Adopt community name if a token with real traction already exists.
-        # "Slurmit" effect: if degens already named this trend, use their name.
-        if existing:
-            top_token = max(existing, key=lambda t: t.get("market_cap", 0))
-            if top_token.get("market_cap", 0) > 500:
-                old_name = story.get("ai_name", "?")
-                story["ai_name"] = top_token["name"]
-                story["ai_ticker"] = top_token["ticker"]
-                print(
-                    Fore.YELLOW
-                    + f"  🏷  Community name adopted: {top_token['name']} "
-                    + f"(${top_token['ticker']}) — was '{old_name}' | "
-                    + f"mcap ${top_token['market_cap']:,.0f}"
-                )
-                logging.info(
-                    f"Community name: '{top_token['name']}' (${top_token['ticker']}) "
-                    f"adopted from pump.fun mcap ${top_token['market_cap']:,.0f} "
-                    f"(was '{old_name}')"
-                )
-
         # Topic-level dedup: skip if this trend was already alerted in the last 72h.
         # Prevents re-alerting on a 3-day-old trend just because a new article appeared.
         topic_kws = story.get("keywords", [])[:4]
