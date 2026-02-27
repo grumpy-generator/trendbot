@@ -14,8 +14,11 @@ from colorama import Fore, init
 
 import feedparser
 
+import requests
+
 from config.settings import (
-    RSS_FEEDS, HIGH_VALUE_KEYWORDS, LOW_VALUE_KEYWORDS,
+    RSS_FEEDS, REDDIT_JSON_SUBREDDITS,
+    HIGH_VALUE_KEYWORDS, LOW_VALUE_KEYWORDS,
     MIN_SCORE_TO_ALERT, TOP_STORIES_PER_WAVE, MAX_STORY_AGE_MINUTES,
     ACTIVE_HOURS_START_UTC, ACTIVE_HOURS_END_UTC,
     BLOCKED_TOPIC_KEYWORDS,
@@ -226,6 +229,102 @@ def _scan_single_feed(feed_name, feed_url):
     return stories
 
 
+_REDDIT_HEADERS = {"User-Agent": "TrendBot/3.0 (viral news scanner)"}
+
+
+def _scan_reddit_json(subreddit, min_upvotes):
+    """
+    Scan a subreddit via Reddit's JSON API.
+
+    Why JSON instead of RSS:
+    - RSS gives no upvote count → we can't filter for virality
+    - RSS thumbnails are tiny or auth-gated → images break
+    - JSON gives score + full preview image from the post itself
+
+    Only posts with score >= min_upvotes are returned.
+    """
+    stories = []
+    try:
+        url = f"https://www.reddit.com/r/{subreddit}/hot.json?limit=25"
+        resp = requests.get(url, headers=_REDDIT_HEADERS, timeout=10)
+        if resp.status_code != 200:
+            logging.warning(f"Reddit r/{subreddit}: HTTP {resp.status_code}")
+            return stories
+
+        posts = resp.json().get("data", {}).get("children", [])
+        feed_name = f"Reddit r/{subreddit}"
+
+        for pw in posts:
+            post = pw.get("data", {})
+
+            # Hard gates
+            if post.get("stickied") or post.get("pinned"):
+                continue
+            if post.get("over_18"):
+                continue
+
+            score = post.get("score", 0)
+            if score < min_upvotes:
+                continue
+
+            title = post.get("title", "").strip()
+            if not title:
+                continue
+
+            sid = hashlib.md5(post.get("id", title).encode()).hexdigest()
+            with _seen_ids_lock:
+                if sid in _seen_ids:
+                    continue
+                _seen_ids.add(sid)
+
+            # Age check
+            created_utc = post.get("created_utc", 0)
+            if created_utc:
+                pub_time = datetime.fromtimestamp(created_utc, tz=timezone.utc)
+                if (datetime.now(timezone.utc) - pub_time) > timedelta(minutes=MAX_STORY_AGE_MINUTES):
+                    continue
+            else:
+                pub_time = None
+
+            # Best image: full-res preview from the post (not thumbnail)
+            source_image_url = None
+            preview_images = post.get("preview", {}).get("images", [])
+            if preview_images:
+                src = preview_images[0].get("source", {})
+                img_url = src.get("url", "")
+                if img_url:
+                    # Reddit HTML-encodes & in preview URLs
+                    source_image_url = img_url.replace("&amp;", "&")
+            # Fallback: thumbnail (only if it's a real URL, not "self"/"default")
+            if not source_image_url:
+                thumb = post.get("thumbnail", "")
+                if thumb and thumb.startswith("http"):
+                    source_image_url = thumb
+
+            link = f"https://www.reddit.com{post.get('permalink', '')}"
+            summary = post.get("selftext", "")[:300]
+
+            stories.append({
+                "id": sid,
+                "source": feed_name,
+                "title": title,
+                "summary": summary,
+                "link": link,
+                "pub_time": pub_time,
+                "published": pub_time.strftime("%Y-%m-%d %H:%M UTC") if pub_time else "Unknown",
+                "source_image_url": source_image_url,
+                "reddit_score": score,
+            })
+
+        if stories:
+            logging.info(f"Reddit r/{subreddit}: {len(stories)} posts ≥{min_upvotes} upvotes")
+
+    except Exception as e:
+        logging.error(f"Reddit JSON scan error r/{subreddit}: {e}")
+
+    return stories
+
+
 def run_scan():
     """
     Scan all RSS feeds IN PARALLEL, then score with AI.
@@ -233,20 +332,26 @@ def run_scan():
     """
     print(Fore.CYAN + f"\n🔍 Scanning {len(RSS_FEEDS)} feeds... ({datetime.now().strftime('%H:%M:%S')})")
 
-    # --- Phase 1: Parallel RSS fetch ---
+    # --- Phase 1: Parallel RSS + Reddit JSON fetch ---
     all_stories = []
-    with ThreadPoolExecutor(max_workers=20) as pool:
-        futures = {
-            pool.submit(_scan_single_feed, name, url): name
-            for name, url in RSS_FEEDS
-        }
+    with ThreadPoolExecutor(max_workers=30) as pool:
+        futures = {}
+        # RSS feeds
+        for name, url in RSS_FEEDS:
+            futures[pool.submit(_scan_single_feed, name, url)] = name
+        # Reddit JSON (upvote-gated, full images)
+        for subreddit, min_upvotes in REDDIT_JSON_SUBREDDITS:
+            futures[pool.submit(_scan_reddit_json, subreddit, min_upvotes)] = f"r/{subreddit}"
+
         for future in as_completed(futures):
             try:
                 all_stories.extend(future.result())
             except Exception as e:
                 logging.error(f"Feed thread error: {e}")
 
-    print(Fore.CYAN + f"   Fetched {len(all_stories)} new stories from feeds")
+    rss_count = len(RSS_FEEDS)
+    reddit_count = len(REDDIT_JSON_SUBREDDITS)
+    print(Fore.CYAN + f"   Fetched {len(all_stories)} new stories ({rss_count} RSS feeds + {reddit_count} Reddit subs)")
 
     if not all_stories:
         return []

@@ -91,28 +91,6 @@ RSS_FEEDS = [
     ("Imgur Hot",               "https://imgur.com/hot.rss"),
     ("Imgur Viral",             "https://imgur.com/viral.rss"),
 
-    # --- REDDIT VIRAL (best early-signal, 30-60 min ahead of mainstream) ---
-    ("Reddit Popular",          "https://www.reddit.com/r/popular/.rss"),
-    ("Reddit All Rising",       "https://www.reddit.com/r/all/rising/.rss"),
-    ("Reddit nottheonion",      "https://www.reddit.com/r/nottheonion/.rss"),
-    ("Reddit Damnthatsinteresting", "https://www.reddit.com/r/Damnthatsinteresting/.rss"),
-    ("Reddit mildlyinteresting","https://www.reddit.com/r/mildlyinteresting/.rss"),
-    ("Reddit interestingasfuck","https://www.reddit.com/r/interestingasfuck/.rss"),
-    ("Reddit BeAmazed",         "https://www.reddit.com/r/BeAmazed/.rss"),
-    ("Reddit nextfuckinglevel", "https://www.reddit.com/r/nextfuckinglevel/.rss"),
-    ("Reddit WTF",              "https://www.reddit.com/r/WTF/.rss"),
-    ("Reddit PublicFreakout",   "https://www.reddit.com/r/PublicFreakout/.rss"),
-    ("Reddit AnimalsBeingDerps","https://www.reddit.com/r/AnimalsBeingDerps/.rss"),
-    ("Reddit Unexpected",       "https://www.reddit.com/r/Unexpected/.rss"),
-    ("Reddit HumansBeingBros",  "https://www.reddit.com/r/HumansBeingBros/.rss"),
-    ("Reddit FloridaMan",       "https://www.reddit.com/r/FloridaMan/.rss"),
-    ("Reddit news",             "https://www.reddit.com/r/news/.rss"),
-    ("Reddit worldnews",        "https://www.reddit.com/r/worldnews/.rss"),
-    ("Reddit TikTokCringe",     "https://www.reddit.com/r/TikTokCringe/.rss"),
-    ("Reddit LivestreamFail",   "https://www.reddit.com/r/LivestreamFail/.rss"),
-    ("Reddit CrazyFuckingVideos","https://www.reddit.com/r/CrazyFuckingVideos/.rss"),
-    ("Reddit shitposting",      "https://www.reddit.com/r/shitposting/.rss"),
-
     # --- SPORTS / POP CULTURE (athletes and celebrities go viral fast) ---
     ("ESPN Top Headlines",      "https://www.espn.com/espn/rss/news"),
     ("Deadspin",                "https://deadspin.com/rss"),
@@ -121,6 +99,46 @@ RSS_FEEDS = [
     # --- LOCAL WEIRD NEWS (breaks before nationals — FloridaMan effect) ---
     ("WSVN Miami",              "https://wsvn.com/feed/"),
     ("NY Daily News",           "https://www.nydailynews.com/arcio/rss/"),
+]
+
+# ---------------------------------------------------------------
+# REDDIT — JSON API scanning (gives upvote counts + full images)
+#
+# Reddit RSS is gone. The JSON API is better because:
+#   1. We get actual upvote counts — filter out low-traction posts
+#   2. We get full-resolution preview images from the post itself
+#   3. r/all/rising was picking up 50-100 upvote posts → not viral
+#
+# Format: (subreddit_name, min_upvotes)
+# min_upvotes = minimum score before we even consider the post
+# ---------------------------------------------------------------
+REDDIT_JSON_SUBREDDITS = [
+    # Animal / creature content — prime meme coin fuel
+    ("AnimalsBeingDerps",   500),
+    ("aww",                1000),
+
+    # Viral weird news
+    ("nottheonion",        2000),
+    ("FloridaMan",          500),
+
+    # Visual virality
+    ("nextfuckinglevel",   2000),
+    ("Unexpected",         1000),
+    ("interestingasfuck",  1500),
+    ("Damnthatsinteresting", 1500),
+    ("BeAmazed",           1000),
+
+    # Chaos / reaction content
+    ("WTF",                2000),
+    ("PublicFreakout",     1500),
+    ("CrazyFuckingVideos", 1000),
+    ("LivestreamFail",     1000),
+    ("TikTokCringe",       1000),
+
+    # Shitpost / meme culture
+    ("shitposting",        3000),
+    ("mildlyinteresting",  3000),
+    ("HumansBeingBros",    1000),
 ]
 
 # ---------------------------------------------------------------
