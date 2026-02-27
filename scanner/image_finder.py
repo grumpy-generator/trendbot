@@ -2,10 +2,15 @@
 ==============================================================
   TREND BOT v3 — IMAGE FINDER
   Strategy:
-    1. Pollinations.ai (free AI generation — always relevant)
-    2. DuckDuckGo image search (duckduckgo-search library)
-    3. Bing image search (scraping fallback)
+    1. DuckDuckGo image search (real memes, viral images)
+    2. Bing image search (scraping fallback)
+    3. Pollinations.ai (AI generation — when web search finds nothing)
     4. Placeholder with ticker text
+
+  Web search comes first because it finds the actual viral image
+  associated with the trend (the meme that's spreading). Pollinations
+  is the fallback AI generator for when nothing is found.
+  Images can be photos, drawings, memes — anything relevant.
 ==============================================================
 """
 
@@ -32,22 +37,43 @@ except ImportError:
 IMAGE_DIR = "images"
 TARGET_SIZE = (512, 512)
 
+# News/photojournalism domains that produce real photos — not cartoon mascots.
+# Images from these domains are filtered out.
+_NEWS_PHOTO_DOMAINS = {
+    "reuters.com", "apimages.com", "ap.org", "apnews.com",
+    "gettyimages.com", "gettyimages.es", "gettyimages.co.uk",
+    "alamy.com", "shutterstock.com", "istockphoto.com",
+    "bbc.com", "bbc.co.uk", "cnn.com", "nbcnews.com", "cbsnews.com",
+    "foxnews.com", "nytimes.com", "washingtonpost.com", "theguardian.com",
+    "politico.com", "thehill.com", "axios.com",
+    "afp.com", "afpforum.com", "zumapressimages.com",
+}
+
+
+def _is_news_photo_url(url):
+    """Return True if the URL is from a photojournalism / stock-photo domain."""
+    url_lower = url.lower()
+    for domain in _NEWS_PHOTO_DOMAINS:
+        if domain in url_lower:
+            return True
+    return False
+
 
 def find_token_image(story_title, ticker, name, visual_hint="", keywords=None):
     """
     Find or create an image for a token.
 
-    Strategy (ordered by reliability):
-    1. Pollinations.ai — AI generates a meme-coin image from the visual description
-    2. DuckDuckGo image search — finds real viral photos/memes
-    3. Bing image search — scraping fallback
+    Strategy:
+    1. DuckDuckGo image search — finds the real viral photo/meme spreading online
+    2. Bing image search — scraping fallback
+    3. Pollinations.ai — AI generation when web search finds nothing relevant
     4. Placeholder — colored square with ticker text
     """
     os.makedirs(IMAGE_DIR, exist_ok=True)
 
     queries = _build_search_queries(visual_hint, name, keywords)
 
-    # 1. DuckDuckGo image search (real viral photo/meme)
+    # 1. DuckDuckGo image search
     if HAS_DDGS:
         for query in queries:
             filepath = _search_ddg(query, ticker)
@@ -62,7 +88,7 @@ def find_token_image(story_title, ticker, name, visual_hint="", keywords=None):
             logging.info(f"Image: Bing OK for '{ticker}' via '{query}'")
             return filepath
 
-    # 3. Pollinations.ai — AI generation when no real image found
+    # 3. Pollinations.ai — AI generation fallback
     prompt = _build_pollinations_prompt(name, visual_hint, story_title, keywords)
     filepath = _generate_with_pollinations(prompt, ticker)
     if filepath:
@@ -70,12 +96,12 @@ def find_token_image(story_title, ticker, name, visual_hint="", keywords=None):
         return filepath
 
     # 4. Placeholder
-    logging.warning(f"Image: placeholder for '{ticker}'")
+    logging.warning(f"Image: all sources failed, using placeholder for '{ticker}'")
     return _create_placeholder(ticker, name)
 
 
 # ---------------------------------------------------------------
-# Pollinations.ai — AI generation
+# Pollinations.ai — AI generation (coherent cartoon mascots)
 # ---------------------------------------------------------------
 
 def _build_pollinations_prompt(name, visual_hint, story_title, keywords):
@@ -135,16 +161,16 @@ def _generate_with_pollinations(prompt, ticker):
 
 
 # ---------------------------------------------------------------
-# DuckDuckGo — library-based (reliable)
+# DuckDuckGo — clipart/illustration search
 # ---------------------------------------------------------------
 
 def _search_ddg(query, ticker):
     try:
         with DDGS() as ddgs:
-            results = list(ddgs.images(query, max_results=8, type_image="photo"))
+            results = list(ddgs.images(query, max_results=10))
         for r in results:
             url = r.get("image", "")
-            if url:
+            if url and not _is_news_photo_url(url):
                 fp = _download_and_save(url, ticker)
                 if fp:
                     return fp
@@ -154,7 +180,7 @@ def _search_ddg(query, ticker):
 
 
 # ---------------------------------------------------------------
-# Bing — scraping fallback
+# Bing — scraping fallback (illustration-biased)
 # ---------------------------------------------------------------
 
 def _search_bing(query, ticker):
@@ -176,8 +202,10 @@ def _search_bing(query, ticker):
             img_urls = re.findall(r'imgurl=([^&"]+)', resp.text)
 
         logging.info(f"Bing: found {len(img_urls)} URLs for '{query}'")
-        for img_url in img_urls[:8]:
-            if any(x in img_url.lower() for x in [".svg", "icon", "logo", "pixel"]):
+        for img_url in img_urls[:10]:
+            if any(x in img_url.lower() for x in [".svg", "icon", "pixel"]):
+                continue
+            if _is_news_photo_url(img_url):
                 continue
             fp = _download_and_save(img_url, ticker)
             if fp:
@@ -189,6 +217,7 @@ def _search_bing(query, ticker):
 
 
 def _build_search_queries(visual_hint, name, keywords):
+    """Build search queries from visual description, name, and keywords."""
     queries = []
     if visual_hint and len(visual_hint) > 5:
         queries.append(visual_hint)

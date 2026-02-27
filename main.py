@@ -28,6 +28,7 @@ from scanner.news_scanner import (
 from scanner.duplicate_checker import (
     search_existing_tokens, evaluate_competition, format_competition_report,
 )
+from scanner.topic_deduper import is_topic_seen, mark_topic_seen
 from scanner.image_finder import find_token_image
 from launcher.pump_launcher import TokenLauncher, check_wallet_ready, generate_token_name
 from monitor.price_monitor import PriceMonitor
@@ -52,6 +53,7 @@ from config.settings import (
 init(autoreset=True)
 os.makedirs("logs", exist_ok=True)
 os.makedirs("images", exist_ok=True)
+os.makedirs("data", exist_ok=True)
 
 logging.basicConfig(
     filename="logs/bot.log",
@@ -198,6 +200,33 @@ def run_scan_cycle(force=False):
             print(Fore.RED + f"  ⚠️  Skipping: {evaluation['reason']}")
             continue
 
+        # Adopt community name if a token with real traction already exists.
+        # "Slurmit" effect: if degens already named this trend, use their name.
+        if existing:
+            top_token = max(existing, key=lambda t: t.get("market_cap", 0))
+            if top_token.get("market_cap", 0) > 500:
+                old_name = story.get("ai_name", "?")
+                story["ai_name"] = top_token["name"]
+                story["ai_ticker"] = top_token["ticker"]
+                print(
+                    Fore.YELLOW
+                    + f"  🏷  Community name adopted: {top_token['name']} "
+                    + f"(${top_token['ticker']}) — was '{old_name}' | "
+                    + f"mcap ${top_token['market_cap']:,.0f}"
+                )
+                logging.info(
+                    f"Community name: '{top_token['name']}' (${top_token['ticker']}) "
+                    f"adopted from pump.fun mcap ${top_token['market_cap']:,.0f} "
+                    f"(was '{old_name}')"
+                )
+
+        # Topic-level dedup: skip if this trend was already alerted in the last 72h.
+        # Prevents re-alerting on a 3-day-old trend just because a new article appeared.
+        topic_kws = story.get("keywords", [])[:4]
+        if is_topic_seen(topic_kws):
+            print(Fore.YELLOW + f"  ⏭  Topic already alerted in last 72h — skipping")
+            continue
+
         # 3. Find/generate token image
         print(Fore.CYAN + f"  🖼  Searching image for '{story.get('ai_name', story['title'][:30])}'...")
         image_path = find_token_image(
@@ -223,6 +252,9 @@ def run_scan_cycle(force=False):
             send_alert(story, image_path=story.get("image_path"))
         else:
             handle_alert_terminal(story, evaluation)
+
+        # Record topic so we don't re-alert for 72h
+        mark_topic_seen(topic_kws)
 
 
 def handle_alert_terminal(story, evaluation):

@@ -51,71 +51,67 @@ MAX_DAILY_SOL_SPEND   = 2.0
 MAX_ACTIVE_POSITIONS  = 5
 
 # ---------------------------------------------------------------
-# NEWS SOURCES (trimmed to ~55 high-quality feeds)
+# NEWS SOURCES
+# Mix: a few mainstream for breaking news + heavy niche/weird-news
+# coverage that mainstream outlets pick up 24-48h later.
 # ---------------------------------------------------------------
 RSS_FEEDS = [
-    # --- MAJOR NATIONAL ---
-    ("Reuters Top News",        "https://feeds.reuters.com/reuters/topNews"),
+    # --- MAINSTREAM (minimal — just for major breaking news) ---
     ("AP News Top Stories",     "https://feeds.apnews.com/rss/topnews"),
     ("AP News Entertainment",   "https://feeds.apnews.com/rss/entertainment"),
-    ("BBC News",                "http://feeds.bbci.co.uk/news/rss.xml"),
-    ("BBC US & Canada",         "http://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml"),
-    ("NPR News",                "https://feeds.npr.org/1001/rss.xml"),
-    ("CNN Top Stories",         "http://rss.cnn.com/rss/cnn_topstories.rss"),
     ("Fox News Latest",         "https://moxie.foxnews.com/google-publisher/latest.xml"),
-    ("NBC News",                "https://feeds.nbcnews.com/nbcnews/public/news"),
-    ("CBS News",                "https://www.cbsnews.com/latest/rss/main"),
-    ("ABC News",                "https://abcnews.go.com/abcnews/topstories"),
-    ("NYT Home Page",           "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml"),
-    ("Washington Post",         "https://feeds.washingtonpost.com/rss/national"),
-    ("The Guardian US",         "https://www.theguardian.com/us-news/rss"),
-
-    # --- POLITICS ---
-    ("Politico",                "https://www.politico.com/rss/politicopicks.xml"),
-    ("The Hill",                "https://thehill.com/rss/syndicator/19110"),
-    ("Axios",                   "https://api.axios.com/feed/"),
+    ("NY Post",                 "https://nypost.com/feed/"),
     ("Mediaite",                "https://www.mediaite.com/feed/"),
 
-    # --- LOCAL US (secret edge) ---
-    ("KOIN Portland",           "https://www.koin.com/feed/"),
-    ("Oregon Live",             "https://www.oregonlive.com/arc/outboundfeeds/rss/"),
-    ("Seattle Times",           "https://www.seattletimes.com/feed/"),
-    ("LA Times",                "https://www.latimes.com/rss2.0.xml"),
-    ("SF Gate",                 "https://www.sfgate.com/rss/feed/SFGate-Top-News-476.php"),
-    ("CBS DFW Dallas",          "https://www.cbsnews.com/texas/local/feed/"),
-    ("WSVN Miami",              "https://wsvn.com/feed/"),
-    ("Tampa Bay Times",         "https://www.tampabay.com/feeds/rss/news/"),
-    ("NY Post",                 "https://nypost.com/feed/"),
-    ("Chicago Tribune",         "https://www.chicagotribune.com/arcio/rss/"),
-    ("Denver Post",             "https://www.denverpost.com/feed/"),
-    ("Atlanta Journal",         "https://www.ajc.com/arc/outboundfeeds/rss/"),
 
-    # --- VIRAL / POP CULTURE ---
+    # --- VIRAL / POP CULTURE / WEIRD NEWS (our edge) ---
+    ("Fark",                    "https://www.fark.com/fark.rss"),
+    ("Oddity Central",          "https://www.odditycentral.com/feed"),
+    ("Bored Panda",             "https://www.boredpanda.com/feed/"),
+    ("Daily Dot",               "https://www.dailydot.com/feed/"),
+    ("Know Your Meme",          "https://knowyourmeme.com/newsfeed.rss"),
+    ("Cheezburger",             "https://cheezburger.com/feed"),
+    ("LADbible",                "https://www.ladbible.com/rss"),
+    ("Unilad",                  "https://www.unilad.com/feed/"),
+    ("TMZ",                     "https://www.tmz.com/rss.xml"),
     ("People Magazine",         "https://people.com/feed/"),
+    ("E! Online",               "https://www.eonline.com/syndication/feeds/rssfeeds/topstories.xml"),
+    ("Barstool Sports",         "https://www.barstoolsports.com/rss"),
 
-    # --- CRYPTO & FINANCE ---
+    # --- REDDIT VIRAL (early signal, 30-60 min ahead of mainstream) ---
+    ("Reddit Popular",          "https://www.reddit.com/r/popular/.rss"),
+    ("Reddit All Rising",       "https://www.reddit.com/r/all/rising/.rss"),
+    ("Reddit Damnthatsinteresting", "https://www.reddit.com/r/Damnthatsinteresting/.rss"),
+    ("Reddit nottheonion",      "https://www.reddit.com/r/nottheonion/.rss"),
+    ("Reddit mildlyinteresting","https://www.reddit.com/r/mildlyinteresting/.rss"),
+    ("Reddit BeAmazed",         "https://www.reddit.com/r/BeAmazed/.rss"),
+    ("Reddit interestingasfuck","https://www.reddit.com/r/interestingasfuck/.rss"),
+    ("Reddit nextfuckinglevel", "https://www.reddit.com/r/nextfuckinglevel/.rss"),
+    ("Reddit WTF",              "https://www.reddit.com/r/WTF/.rss"),
+    ("Reddit PublicFreakout",   "https://www.reddit.com/r/PublicFreakout/.rss"),
+    ("Reddit HumansBeingBros",  "https://www.reddit.com/r/HumansBeingBros/.rss"),
+    ("Reddit AnimalsBeingDerps","https://www.reddit.com/r/AnimalsBeingDerps/.rss"),
+    ("Reddit Unexpected",       "https://www.reddit.com/r/Unexpected/.rss"),
+    ("Reddit news",             "https://www.reddit.com/r/news/.rss"),
+    ("Reddit worldnews",        "https://www.reddit.com/r/worldnews/.rss"),
+
+    # --- CRYPTO & MEME CULTURE ---
     ("CoinDesk",                "https://www.coindesk.com/arc/outboundfeeds/rss/"),
     ("Decrypt",                 "https://decrypt.co/feed"),
     ("CoinTelegraph",           "https://cointelegraph.com/rss"),
-    ("The Block",               "https://www.theblock.co/rss.xml"),
-
-    # --- REDDIT (catches viral 30-60 min early) ---
-    ("Reddit World News",       "https://www.reddit.com/r/worldnews/.rss"),
-    ("Reddit Politics",         "https://www.reddit.com/r/politics/.rss"),
     ("Reddit Crypto",           "https://www.reddit.com/r/CryptoCurrency/.rss"),
     ("Reddit Solana",           "https://www.reddit.com/r/solana/.rss"),
-    ("Reddit Popular",          "https://www.reddit.com/r/popular/.rss"),
-    ("Reddit All Rising",       "https://www.reddit.com/r/all/rising/.rss"),
-    ("Reddit News",             "https://www.reddit.com/r/news/.rss"),
+    ("Reddit CryptoMoonShots",  "https://www.reddit.com/r/CryptoMoonShots/.rss"),
+    ("Reddit SatoshiStreetBets","https://www.reddit.com/r/SatoshiStreetBets/.rss"),
 
-    # --- TECH & SCIENCE ---
-    ("TechCrunch",              "https://techcrunch.com/feed/"),
+    # --- TECH / WEIRD SCIENCE ---
     ("The Verge",               "https://www.theverge.com/rss/index.xml"),
-    ("Ars Technica",            "https://feeds.arstechnica.com/arstechnica/index"),
-    ("Wired",                   "https://www.wired.com/feed/rss"),
+    ("Futurism",                "https://futurism.com/feed"),
+    ("IFLScience",              "https://www.iflscience.com/rss.xml"),
 
-    # --- SPORTS ---
-    ("ESPN Top Headlines",      "https://www.espn.com/espn/rss/news"),
+    # --- LOCAL US WEIRD NEWS (breaks stories before nationals) ---
+    ("NY Post Weird",           "https://nypost.com/weird/feed/"),
+    ("WSVN Miami",              "https://wsvn.com/feed/"),
 ]
 
 # ---------------------------------------------------------------
